@@ -10,7 +10,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="PhaseZoomPrototype"
         component={PhaseZoomPrototype}
-        durationInFrames={150}
+        durationInFrames={320}
         fps={30}
         width={1920}
         height={1080}

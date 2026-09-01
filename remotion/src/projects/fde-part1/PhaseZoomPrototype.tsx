@@ -4,8 +4,9 @@ import {colors, fonts} from '../../style/tokens';
 // Proof of concept for the "continuous canvas" approach: one shared world
 // coordinate space, a camera (center point + zoom) that animates across
 // frames, and objects that persist rather than mounting/unmounting per
-// scene. This validates the technique before the full storyboard commits
-// to it - see architecture.md.
+// scene. Chains TWO linked scenes (storyboard scenes 2 and 3) to test
+// whether the technique composes, not just works in isolation - see
+// architecture.md.
 
 type Phase = {
   id: string;
@@ -28,13 +29,44 @@ const BOX_Y = 450;
 const BOX_W = 220;
 const BOX_H = 90;
 
+const HUB_X = phases[0].x + BOX_W / 2;
+const HUB_Y = BOX_Y + BOX_H / 2;
+
+const spokeLabels = ['AI', 'Initial Conversation', 'Cost', 'Latency', 'Accuracy', 'Data'];
+const SPOKE_RADIUS = 280;
+const spokes = spokeLabels.map((label, i) => {
+  const angle = (i / spokeLabels.length) * Math.PI * 2 - Math.PI / 2;
+  return {
+    label,
+    x: HUB_X + Math.cos(angle) * SPOKE_RADIUS,
+    y: HUB_Y + Math.sin(angle) * SPOKE_RADIUS,
+  };
+});
+
 // Timeline (30fps):
-// 0-40:   boxes + arrows draw in, camera holds on full row
-// 40-100: camera zooms into "capability" box
-// 100-150: hold on zoomed capability label
+// Scene 2 (4-phase framework):
+//   0-40:    boxes + arrows draw in
+//   40-100:  camera zooms into "capability" box
+//   100-150: hold on zoomed capability
+// Scene 3 (CTO question hub-and-spoke), chained onto the same box/camera:
+//   150-190: capability box morphs into "CTO Question" hub, camera eases out
+//   190-280: spokes extend outward one at a time
+//   280-320: hold on full hub-and-spoke
 const HOLD_START = 40;
 const ZOOM_START = 40;
 const ZOOM_END = 100;
+const MORPH_START = 150;
+const MORPH_END = 190;
+const SPOKES_START = 190;
+const SPOKE_STAGGER = 14;
+const SPOKE_DURATION = 20;
+
+const lerpColor = (a: string, b: string, t: number) => {
+  const pa = a.match(/\w\w/g)!.map((h) => parseInt(h, 16));
+  const pb = b.match(/\w\w/g)!.map((h) => parseInt(h, 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
 
 export const PhaseZoomPrototype: React.FC = () => {
   const frame = useCurrentFrame();
@@ -52,21 +84,28 @@ export const PhaseZoomPrototype: React.FC = () => {
     easing: Easing.inOut(Easing.cubic),
   });
 
-  const capability = phases[0];
+  const morphT = interpolate(frame, [MORPH_START, MORPH_END], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.inOut(Easing.cubic),
+  });
 
-  // Camera: interpolate between "framing the whole row" and "framing just
-  // the capability box". Camera state = (focus x, focus y, scale).
+  // Camera: whole-row -> tight zoom on capability -> eased-out framing of
+  // the hub-and-spoke that capability morphs into. Position never moves
+  // after the initial zoom (hub sits where the box was) - only scale
+  // changes, which is what makes the morph read as "this box became that
+  // hub" rather than a cut to a new place.
   const camFullX = WORLD_WIDTH / 2;
   const camFullY = WORLD_HEIGHT / 2;
   const camFullScale = 1;
 
-  const camZoomX = capability.x + BOX_W / 2;
-  const camZoomY = BOX_Y + BOX_H / 2;
   const camZoomScale = 3.2;
+  const camHubScale = 1.5;
 
-  const camX = interpolate(zoomT, [0, 1], [camFullX, camZoomX]);
-  const camY = interpolate(zoomT, [0, 1], [camFullY, camZoomY]);
-  const camScale = interpolate(zoomT, [0, 1], [camFullScale, camZoomScale]);
+  const camX = interpolate(zoomT, [0, 1], [camFullX, HUB_X]);
+  const camY = interpolate(zoomT, [0, 1], [camFullY, HUB_Y]);
+  const camScaleAfterZoom = interpolate(zoomT, [0, 1], [camFullScale, camZoomScale]);
+  const camScale = interpolate(morphT, [0, 1], [camScaleAfterZoom, camHubScale]);
 
   const viewportCenterX = width / 2;
   const viewportCenterY = height / 2;
@@ -75,9 +114,17 @@ export const PhaseZoomPrototype: React.FC = () => {
     viewportCenterY - camY * camScale
   }px) scale(${camScale})`;
 
-  // Other phases fade out as we zoom past them, so the zoomed frame isn't
-  // cluttered by boxes now outside the camera's logical focus.
   const otherPhaseOpacity = interpolate(zoomT, [0, 0.6, 1], [1, 0.3, 0]);
+
+  const hubBorderColor = lerpColor(colors.phase.capability, colors.foreground, morphT);
+  const hubTextOpacityOld = interpolate(morphT, [0.3, 0.7], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const hubTextOpacityNew = interpolate(morphT, [0.3, 0.7], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   return (
     <AbsoluteFill style={{backgroundColor: colors.background}}>
@@ -110,6 +157,68 @@ export const PhaseZoomPrototype: React.FC = () => {
           />
         </svg>
 
+        {/* Spokes: connecting lines + labels, radiating from the hub */}
+        <svg
+          width={WORLD_WIDTH}
+          height={WORLD_HEIGHT}
+          style={{position: 'absolute', top: 0, left: 0}}
+        >
+          {spokes.map((spoke, i) => {
+            const spokeStart = SPOKES_START + i * SPOKE_STAGGER;
+            const spokeT = interpolate(frame, [spokeStart, spokeStart + SPOKE_DURATION], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+              easing: Easing.out(Easing.cubic),
+            });
+            const lineLength = Math.hypot(spoke.x - HUB_X, spoke.y - HUB_Y);
+            return (
+              <line
+                key={spoke.label}
+                x1={HUB_X}
+                y1={HUB_Y}
+                x2={spoke.x}
+                y2={spoke.y}
+                stroke={colors.dim}
+                strokeWidth={2}
+                strokeDasharray={lineLength}
+                strokeDashoffset={interpolate(spokeT, [0, 1], [lineLength, 0])}
+              />
+            );
+          })}
+        </svg>
+
+        {spokes.map((spoke, i) => {
+          const spokeStart = SPOKES_START + i * SPOKE_STAGGER;
+          const spokeT = interpolate(frame, [spokeStart, spokeStart + SPOKE_DURATION], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: Easing.out(Easing.back(1.5)),
+          });
+          return (
+            <div
+              key={spoke.label}
+              style={{
+                position: 'absolute',
+                left: spoke.x,
+                top: spoke.y,
+                transform: `translate(-50%, -50%) scale(${spokeT})`,
+                opacity: spokeT,
+                color: colors.foreground,
+                fontFamily: fonts.family,
+                fontSize: 26,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                backgroundColor: colors.background,
+                padding: '6px 14px',
+                border: `2px solid ${colors.dim}`,
+                borderRadius: 8,
+              }}
+            >
+              {spoke.label}
+            </div>
+          );
+        })}
+
         {phases.map((phase, i) => {
           const isCapability = phase.id === 'capability';
           const boxDelay = i * 6;
@@ -131,23 +240,60 @@ export const PhaseZoomPrototype: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: `3px solid ${isCapability ? phase.color : colors.dim}`,
+                border: `3px solid ${isCapability ? hubBorderColor : colors.dim}`,
                 borderRadius: 12,
                 opacity: isCapability ? boxProgress : boxProgress * otherPhaseOpacity,
                 transform: `scale(${boxProgress})`,
                 backgroundColor: colors.background,
               }}
             >
-              <span
-                style={{
-                  color: isCapability ? phase.color : colors.foreground,
-                  fontFamily: fonts.family,
-                  fontSize: 32,
-                  fontWeight: 600,
-                }}
-              >
-                {phase.label}
-              </span>
+              {isCapability ? (
+                <>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      whiteSpace: 'nowrap',
+                      opacity: hubTextOpacityOld,
+                      color: colors.phase.capability,
+                      fontFamily: fonts.family,
+                      fontSize: 32,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {phase.label}
+                  </span>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      whiteSpace: 'nowrap',
+                      opacity: hubTextOpacityNew,
+                      color: colors.foreground,
+                      fontFamily: fonts.family,
+                      fontSize: 26,
+                      fontWeight: 600,
+                    }}
+                  >
+                    CTO Question
+                  </span>
+                </>
+              ) : (
+                <span
+                  style={{
+                    color: colors.foreground,
+                    fontFamily: fonts.family,
+                    fontSize: 32,
+                    fontWeight: 600,
+                  }}
+                >
+                  {phase.label}
+                </span>
+              )}
             </div>
           );
         })}
