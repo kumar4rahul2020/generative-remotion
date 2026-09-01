@@ -20,13 +20,15 @@ Concretely:
 - Everything downstream (storyboard data, scene components, rendering) is
   TypeScript/React inside the same Remotion project.
 
-## LLM allocation: Gemini (scripted) vs Claude Code (interactive)
+## LLM allocation: OpenAI API (scripted) vs Claude Code (interactive)
 
-Claude Code tokens are a metered, limited resource; the Gemini API is
+Claude Code tokens are a metered, limited resource; the OpenAI API is
 available and comparatively cheap. So the two aren't interchangeable
-options — they're split by role:
+options — they're split by role. (Originally scoped around the Gemini API;
+switched to OpenAI once that was the key actually available — the role
+split below is unaffected by which provider fills the "scripted" slot.)
 
-- **Gemini API — bulk/mechanical first-draft generation, run as a script,
+- **OpenAI API — bulk/mechanical first-draft generation, run as a script,
   outside this conversation.** No judgment required to produce a draft, so
   no reason to spend Claude Code tokens on it.
 - **Claude Code (interactive) — review, refinement, and debugging.** Reserved
@@ -38,13 +40,13 @@ Mapped onto the pipeline stages:
 
 | Stage | Who does the first pass | Who reviews |
 |---|---|---|
-| 3. Storyboard proposal | **Gemini** (scripted call: script + timestamps + visual notes → draft storyboard.md) | Claude Code, with me |
+| 3. Storyboard proposal | **OpenAI** (scripted call: script + timestamps + visual notes → draft storyboard.md) | Claude Code, with me |
 | 4. Review & revise | — (this stage *is* the review) | Claude Code + me, conversational |
-| 5. Build (storyboard → Remotion code) | **Gemini** (scripted call: approved storyboard → first-draft scene components) | Claude Code fixes/debugs what doesn't render right |
+| 5. Build (storyboard → Remotion code) | **OpenAI** (scripted call: approved storyboard → first-draft scene components) | Claude Code fixes/debugs what doesn't render right |
 | 6/7. Render & review | mechanical (Remotion CLI) | me, watching the actual video |
 
-Net effect: Gemini produces volume, Claude Code spends its budget on
-judgment calls and fixing what Gemini gets wrong — not on generating first
+Net effect: OpenAI produces volume, Claude Code spends its budget on
+judgment calls and fixing what OpenAI gets wrong — not on generating first
 drafts from scratch.
 
 ## SDK, not an agent framework
@@ -60,9 +62,9 @@ it solves for cyclic, dynamically-routed multi-agent control flow, none of
 which this pipeline needs. Reaching for it would be exactly the premature
 abstraction intent.md warns against.
 
-**Chosen: `@google/genai`** — Google's official Node/TS SDK. Plain scripted
-calls, one per pipeline stage, matching the stage table above. Stays inside
-the existing Node/Remotion toolchain (no new runtime, consistent with the
+**Chosen: `openai`** — the official Node/TS SDK. Plain scripted calls, one
+per pipeline stage, matching the stage table above. Stays inside the
+existing Node/Remotion toolchain (no new runtime, consistent with the
 whisper.cpp-over-Python decision already made). Revisit only if a real need
 for branching/dynamic tool-choice shows up — not before.
 
@@ -75,9 +77,9 @@ becomes Remotion code until the storyboard artifact is reviewed and approved.
 |---|---|---|---|
 | 1. Intake | recorded narration + script.md + freeform visual notes | raw project folder | — |
 | 2. Alignment | narration audio | `timestamps.json` (word/segment-level) | `@remotion/whisper-cpp` |
-| 3. Storyboard proposal | script + timestamps + visual notes | `storyboard.md` (human-readable plan, per scene: text, visual treatment, start/end time) | Gemini (draft) → Claude Code (review) |
+| 3. Storyboard proposal | script + timestamps + visual notes | `storyboard.md` (human-readable plan, per scene: text, visual treatment, start/end time) | OpenAI (draft) → Claude Code (review) |
 | 4. Review & revise | storyboard.md + my feedback | updated `storyboard.md` | Claude Code |
-| 5. Build | approved storyboard.md | Remotion composition + scene components | Gemini (draft) → Claude Code (fix/debug) |
+| 5. Build | approved storyboard.md | Remotion composition + scene components | OpenAI (draft) → Claude Code (fix/debug) |
 | 6. Render & review | Remotion composition | preview `.mp4` | Remotion render |
 | 7. Final render | approved preview | final `.mp4` | Remotion render |
 
@@ -133,7 +135,8 @@ ProjectX/
 │   └── fde-part1/
 │       ├── script.md
 │       ├── narration.wav
-│       ├── timestamps.json       # from whisper.cpp alignment (pending)
+│       ├── timestamps.json       # from whisper.cpp alignment (done)
+│       ├── visual-notes.md       # per-project visual expectation input (done)
 │       └── storyboard.md         # reviewable plan — the step-4 artifact (pending)
 └── remotion/                     # single Remotion project (npm create-video scaffold)
     ├── package.json
