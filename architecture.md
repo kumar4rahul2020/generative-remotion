@@ -119,27 +119,38 @@ speculative).
 
 ## Repository layout
 
+Code and non-code artifacts are split: everything Remotion needs to compile
+(shared style, shared/promoted components, per-project compositions) lives
+inside the single Remotion project at `remotion/`; non-code project inputs
+and pipeline artifacts (script, audio, timestamps, storyboard) live in
+`projects/<name>/` at the repo root.
+
 ```
 ProjectX/
-├── intent.md                 # why + what (philosophy, inputs, pipeline)
-├── architecture.md           # this file — how it's built
-├── style/                    # shared brand: tokens + motion primitives
-│   ├── tokens.ts
-│   └── motion.ts
-├── components/                # shared, promoted scene components (starts empty)
-└── projects/
-    └── fde-part1/
-        ├── script.md          # already have
-        ├── narration.wav      # already have (fde-part1.wav)
-        ├── timestamps.json    # from whisper.cpp alignment
-        ├── storyboard.md      # reviewable plan — the step-4 artifact
-        └── remotion/          # composition + project-specific scene components
+├── intent.md                     # why + what
+├── architecture.md               # this file — how it's built
+├── projects/
+│   └── fde-part1/
+│       ├── script.md
+│       ├── narration.wav
+│       ├── timestamps.json       # from whisper.cpp alignment (pending)
+│       └── storyboard.md         # reviewable plan — the step-4 artifact (pending)
+└── remotion/                     # single Remotion project (npm create-video scaffold)
+    ├── package.json
+    └── src/
+        ├── Root.tsx              # registers compositions
+        ├── style/                # shared brand: tokens + motion primitives
+        ├── components/           # shared, promoted scene components (starts empty)
+        └── projects/
+            └── fde-part1/        # this video's composition + project-specific scenes
 ```
 
-One Remotion project overall, with each video as its own composition under
-`projects/<name>/remotion`, importing shared tokens/components from the top
-level. Project-specific scene components live next to the project until
-they've proven reusable, then move up to `components/`.
+One Remotion project overall — one `package.json`, one `node_modules`. Each
+video is a composition under `remotion/src/projects/<name>/`, importing
+shared tokens/components from `remotion/src/style` and
+`remotion/src/components`. Project-specific scene components live next to
+the project until they've proven reusable (per the "reusable scene-component
+library" section above), then move up to `remotion/src/components/`.
 
 ## Review checkpoints (where I'm in the loop)
 
