@@ -20,53 +20,52 @@ Concretely:
 - Everything downstream (storyboard data, scene components, rendering) is
   TypeScript/React inside the same Remotion project.
 
-## LLM allocation: OpenAI API (scripted) vs Claude Code (interactive)
+## LLM allocation: Claude Code drafts directly (no scripted API in the loop)
 
-Claude Code tokens are a metered, limited resource; the OpenAI API is
-available and comparatively cheap. So the two aren't interchangeable
-options — they're split by role. (Originally scoped around the Gemini API;
-switched to OpenAI once that was the key actually available — the role
-split below is unaffected by which provider fills the "scripted" slot.)
+Originally the plan (first Gemini, then OpenAI) was to route storyboard and
+code generation through a cheap scripted API, with Claude Code reserved for
+review/fixes — treating those stages as bulk/mechanical work not worth
+Claude Code's metered tokens.
 
-- **OpenAI API — bulk/mechanical first-draft generation, run as a script,
-  outside this conversation.** No judgment required to produce a draft, so
-  no reason to spend Claude Code tokens on it.
-- **Claude Code (interactive) — review, refinement, and debugging.** Reserved
-  for the parts of the pipeline that already require human-in-the-loop
-  judgment per intent.md — i.e. it does less *volume* of work, but the parts
-  that actually need taste.
+**Revised, after seeing the first storyboard draft in practice**: that
+assumption was wrong for this pipeline. The OpenAI-drafted storyboard
+defaulted to one generic diagram pattern ("nodes appear and connect") across
+most scenes regardless of what the content actually was — because matching
+diagram *type* to content shape (a pipeline for RAG's mechanics, containment
+rings for a security perimeter, a balance scale for an ROI question, a
+split-panel for two parallel categories) is exactly the judgment call, not
+mechanical output. Getting a usable result meant Claude Code redoing most of
+the creative work anyway during "review."
 
-Mapped onto the pipeline stages:
+So: **visual/diagram judgment is the actual hard problem this tool exists to
+solve** — not a bulk step to route around. Claude Code now drafts both the
+storyboard and the Remotion scene code directly; the OpenAI API is no longer
+used in this pipeline.
 
-| Stage | Who does the first pass | Who reviews |
-|---|---|---|
-| 3. Storyboard proposal | **OpenAI** (scripted call: script + timestamps + visual notes → draft storyboard.md) | Claude Code, with me |
-| 4. Review & revise | — (this stage *is* the review) | Claude Code + me, conversational |
-| 5. Build (storyboard → Remotion code) | **OpenAI** (scripted call: approved storyboard → first-draft scene components) | Claude Code fixes/debugs what doesn't render right |
-| 6/7. Render & review | mechanical (Remotion CLI) | me, watching the actual video |
+| Stage | Who does it |
+|---|---|
+| 3. Storyboard proposal | Claude Code, directly (script + timestamps + visual notes → draft storyboard.md) |
+| 4. Review & revise | Claude Code + me, conversational |
+| 5. Build (storyboard → Remotion code) | Claude Code, directly |
+| 6/7. Render & review | mechanical (Remotion CLI), me watching the actual video |
 
-Net effect: OpenAI produces volume, Claude Code spends its budget on
-judgment calls and fixing what OpenAI gets wrong — not on generating first
-drafts from scratch.
+The `openai` npm package and `remotion/scripts/storyboard.ts` (the scripted
+first-draft caller) are removed as dead weight now that this path isn't
+used. The mechanical part that script also did — matching a scene's cue
+words against `timestamps.json` to get real start/end times — is still
+useful and still happens, just as a direct step Claude Code does per scene
+rather than a formal reusable script (no reason to maintain an abstraction
+for something done by hand each time).
 
-## SDK, not an agent framework
+## No agent framework
 
-The pipeline above is **linear with explicit human checkpoints** — script →
-timestamps → storyboard → code → render, each stage consuming the previous
-stage's artifact. It isn't a dynamic agent that needs to branch, loop, or
-choose which tool to call next; the "next step" is always already known from
-architecture.md's stage table.
-
-That makes an orchestration framework like LangGraph the wrong shape here —
-it solves for cyclic, dynamically-routed multi-agent control flow, none of
-which this pipeline needs. Reaching for it would be exactly the premature
-abstraction intent.md warns against.
-
-**Chosen: `openai`** — the official Node/TS SDK. Plain scripted calls, one
-per pipeline stage, matching the stage table above. Stays inside the
-existing Node/Remotion toolchain (no new runtime, consistent with the
-whisper.cpp-over-Python decision already made). Revisit only if a real need
-for branching/dynamic tool-choice shows up — not before.
+The pipeline is still **linear with explicit human checkpoints** — script →
+timestamps → storyboard → code → render — even with Claude Code doing more
+of the direct work. It isn't a dynamic agent that needs to branch, loop, or
+choose which tool to call next. An orchestration framework like LangGraph
+would still be the wrong shape here — solving for cyclic, dynamically-routed
+control flow this pipeline doesn't have. That conclusion doesn't change with
+who does the drafting.
 
 ## Pipeline stages → artifacts
 
@@ -77,9 +76,9 @@ becomes Remotion code until the storyboard artifact is reviewed and approved.
 |---|---|---|---|
 | 1. Intake | recorded narration + script.md + freeform visual notes | raw project folder | — |
 | 2. Alignment | narration audio | `timestamps.json` (word/segment-level) | `@remotion/whisper-cpp` |
-| 3. Storyboard proposal | script + timestamps + visual notes | `storyboard.md` (human-readable plan, per scene: text, visual treatment, start/end time) | OpenAI (draft) → Claude Code (review) |
+| 3. Storyboard proposal | script + timestamps + visual notes | `storyboard.md` (human-readable plan, per scene: text, visual treatment, start/end time) | Claude Code, directly |
 | 4. Review & revise | storyboard.md + my feedback | updated `storyboard.md` | Claude Code |
-| 5. Build | approved storyboard.md | Remotion composition + scene components | OpenAI (draft) → Claude Code (fix/debug) |
+| 5. Build | approved storyboard.md | Remotion composition + scene components | Claude Code, directly |
 | 6. Render & review | Remotion composition | preview `.mp4` | Remotion render |
 | 7. Final render | approved preview | final `.mp4` | Remotion render |
 
