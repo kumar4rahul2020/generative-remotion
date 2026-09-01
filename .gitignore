@@ -5,3 +5,6 @@ out/
 .env.local
 *.log
 .DS_Store
+.claude/
+remotion/.whisper.cpp/
+remotion/tmp.json
