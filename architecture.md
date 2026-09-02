@@ -129,6 +129,33 @@ rather than relying on remembering a manual copy step.
 A chunk is a commit. If a chunk goes the wrong direction, reverting it
 doesn't touch anything before or after it.
 
+## Visual-design prototyping: plain HTML before Remotion
+
+For a new visual *direction* (not a tweak to an approved one) — e.g.
+evaluating an editorial/Vox-style treatment against the current
+diagram-and-map approach — design it first as a **plain, standalone HTML/CSS/JS
+file** under `remotion/prototypes/<name>/`, not as a Remotion component.
+
+Why: Remotion requires state to be a deterministic function of frame number,
+which is the right constraint for final rendering but a slower loop for
+purely visual iteration — every change needs a render before it can be seen.
+A plain HTML file animates live in a browser with zero build/render step,
+and can embed a real trimmed clip of the actual narration (a plain audio
+file referenced normally, not inlined) so the visual can be checked against
+real speech immediately.
+
+The animation logic is still written as `state = f(currentTime)` (reading
+`audio.currentTime` each frame) — the same principle Remotion's
+`useCurrentFrame()` + `interpolate()` follows — so once a direction is
+approved, porting it into a real Remotion component is a mechanical
+translation of already-validated logic, not a redesign.
+
+These prototypes are plain files (HTML, CSS, JS, a small audio clip) — no
+build step, editable directly in any text editor and previewable by just
+opening the file in a browser. Not part of the Remotion build (nothing under
+`prototypes/` is imported by `src/`), and never rendered into the final
+video themselves.
+
 ## Shared style layer (persistent brand)
 
 The white-on-black minimalist baseline from intent.md is implemented once,
