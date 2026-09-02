@@ -13,13 +13,24 @@ Chunk plan (from storyboard.md's joints):
 
 ---
 
-## Chunk 1: title → framework → map reveal — LOCKED
+## Chunk 1: title → framework → map reveal — LOCKED, BUILT
 
 **Design**: editorial/Vox-style (kinetic typography, annotated callouts,
 flat icons, phase-progress dots) — supersedes the original diagram/map
 treatment for this chunk. Validated as a standalone HTML prototype
-(`remotion/prototypes/fde-part1-vox-preview/index.html`) before porting;
-not yet ported to the real Remotion `Chunk1.tsx` as of this entry.
+(`remotion/prototypes/fde-part1-vox-preview/index.html`), then ported to
+the real `remotion/src/projects/fde-part1/Chunk1.tsx` — the port held up
+cleanly against spot-checked rendered frames, no bugs found beyond what
+the prototype already caught.
+
+**Camera/world system**: `Chunk1.tsx` does **not** use `world.ts`'s
+camera/coordinate system — the validated Vox design never needed it
+(simple opacity-based scene overlays, not a persistent zoomed world).
+Only `world.ts`'s `seriesPhases`/`mapNodes` label data is imported.
+`world.ts`'s camera machinery (`Camera` type, `cameraTransform`,
+`PHASE_BOX_*`/`MAP_NODE_*` layout constants) is currently unused —
+left in place, not deleted, in case a later stop returns to a
+camera-driven approach.
 
 **Audio**: narration plays at **1.3x speed**, pitch-corrected —
 `projects/fde-part1/narration-1.3x.wav` /
@@ -38,15 +49,17 @@ now ~0s → ~73.8s (was ~0s → ~95.9s at 1x).
 8. Zoom into "DISCOVERY" (scale 1.25, not 1.8 — full-scale overflowed frame) — ~68.4s → ~70.9s
 9. Map reveal, 6 nodes, flat/typographic style — ~70.9s → ~73.8s
 
-**End state** (what Chunk 2 continues from): full 6-node Discovery map on
-screen, all nodes empty/outline (none filled yet — filling starts at
-Joint 1, after stops 1–3). Camera/world position: centered map layout,
-matching `world.ts`'s `MAP_CENTER_X/Y` — **not yet re-validated against
-the Vox visual style**, since the map ending in the prototype is
-typographic (flat labeled blocks) rather than the bordered diagram nodes
-`world.ts` currently defines. Reconcile `world.ts` during the Remotion
-port.
+**End state** (what Chunk 2 continues from): full 6-node Discovery map,
+centered on screen (flex-row layout, not `world.ts` camera coordinates),
+all nodes empty/outline styled as flat bordered blocks (border color
+`colors.dim`, `IBM Plex Sans` labels) — none filled yet, filling starts at
+Joint 1 after stops 1–3. No persistent camera/zoom state to hand off,
+since this design doesn't use one — Chunk 2 starts fresh from a static
+map, not from a specific camera position/scale.
 
-**Not yet done**: port this prototype into `remotion/src/projects/fde-part1/Chunk1.tsx`,
-replacing the current diagram-based implementation; reconcile `world.ts`'s
-map-node styling with the flat Vox treatment.
+**Not yet done**: nothing outstanding for Chunk 1 itself. Open for Chunk
+2: whether it continues the flat/typographic Vox language (icons +
+kinetic headlines + callouts, per `visual-notes.md`) for stops 1–3, or
+introduces node-graph/diagram elements again now that the map itself has
+real content to fill in — worth deciding explicitly rather than
+defaulting either way.
