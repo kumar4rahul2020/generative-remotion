@@ -116,3 +116,66 @@ unresolved. Stop 6 (Proving the Value) reads as a separate, self-contained
 coda ("how do we know it'll work") rather than a continuation Stop 5
 depends on — so Chunk 3 = Stop 5 → Joint 3 alone, unlike Chunk 2, does
 not need extending.
+
+## Chunk 3: The Conceptual Solution (Stop 5) — LOCKED
+
+**Design**: Vox language, using the pipeline/equation/rings visual
+vocabulary (not bordered node-graphs, per the standing resolution).
+Introduces a **throughline callback**: the exact same Cost/Latency/
+Accuracy/Data tags from Chunk 2's Stop 1 reappear at the top and get
+checked off live as each is resolved — ties the chunks together as one
+argument rather than each feeling visually independent. Validated as
+`remotion/prototypes/fde-part1-vox-chunk3/index.html`; **not yet
+ported** to Remotion.
+
+**Beats** (seconds, relative to this chunk's start — Stop 5 begins at
+309.04s/1.3 ≈ 237.72s into the 1.3x narration):
+1. RAG pipeline (Query → Retrieval → Generation → Citation, progressive connectors) — 0s → ~21.4s
+2. Latency win (5 MIN → 3 SEC) + CRM/browser adoption callout — LATENCY resolved — ~21.4s → ~50.3s
+3. Accuracy (citations to internal docs, annotated) — ACCURACY resolved — ~50.3s → ~90.5s
+4. Cost (literal ROI equation) — COST resolved — ~90.5s → ~109.4s
+5. Security (containment rings, "Public Internet" struck through) — DATA resolved — ~109.4s → ~144.0s
+6. Joint 3 (map, 5/6 filled) — ~144.0s → end (~149s)
+
+**Bug fixed during build**: the security ring's "blocked" treatment was
+initially a line slashing across the whole diagram, cutting through
+"Enterprise Data" at the center — backwards from the intended meaning.
+Replaced with a strikethrough on just the "Public Internet" label.
+
+**End state** (what Chunk 4 continues from): 6-node map, 5 of 6 filled
+(only "Proving the Value" still dim/outline). Same flat/typographic
+map styling as Chunks 1–2.
+
+**Not yet done**: port into Remotion.
+
+## Chunk 4: Stop 6 → Payoff → Closing → Outro — LOCKED (final chunk)
+
+**Design**: Vox language throughout. Stop 6 reuses the pipeline visual
+grammar (3-stage proof path: Golden Set → Rapid Prototype → Technically
+Solvable). Payoff is the full 6-node map, all filled, held static
+longer than any other moment in the video — the deliberate screenshot.
+Closing is a brief pull-back to the series framework (Discovery
+complete, Capability & Reliability highlighted next) — a pointer to
+part 2, not a competing payoff. Outro is three reflective beats instead
+of one static card held over ~32s, per the established pacing
+discipline. Validated as
+`remotion/prototypes/fde-part1-vox-chunk4/index.html`; **not yet
+ported**.
+
+**Boundary note**: this is the video's actual end — no next chunk, so
+no completeness risk to check (unlike Chunks 2 and 3).
+
+**Beats** (seconds, relative to this chunk's start — Stop 6 begins at
+496.18s/1.3 ≈ 381.68s into the 1.3x narration):
+1. Proof path (Golden Set → Rapid Prototype → Solvable) — 0s → ~24.0s
+2. Payoff: complete map, all 6 filled, held — ~24.0s → ~31.3s
+3. Closing: series pull-back, Discovery done / Capability & Reliability next — ~31.3s → ~34.0s
+4. Outro beat 1: "A framework, not just an answer" — ~34.0s → ~49.8s
+5. Outro beat 2: "Applied universally across any AI interview" — ~49.8s → ~59.2s
+6. Outro beat 3: "Thank you" + feedback line — ~59.2s → end (~67s)
+
+**End state**: none needed — this is the end of fde-part1.
+
+**Not yet done**: port Chunks 2, 3, and 4 into Remotion (currently only
+Chunk 1 is built in the real pipeline). Once ported, render the full
+video end-to-end for final review.
