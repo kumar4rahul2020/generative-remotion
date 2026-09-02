@@ -76,23 +76,34 @@
   .mark-wrap.drawn path { animation: draw 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
   @keyframes draw { to { stroke-dashoffset: 0; } }
 
+  .quote-mark {
+    width: 48px; height: 48px; margin-bottom: 14px; opacity: 0.85;
+  }
+
   /* Factor tags (Cost/Latency/Accuracy/Data) */
   .tag-row { display: flex; gap: 16px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
   .tag {
+    display: flex; align-items: center; gap: 9px;
     font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 16px;
     letter-spacing: 0.08em; padding: 10px 20px;
     border: 2px solid var(--dim); border-radius: 999px; color: var(--dim);
     opacity: 0; transform: translateY(10px) scale(0.9);
     transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.35s ease, color 0.35s ease;
   }
+  .tag svg { width: 18px; height: 18px; flex-shrink: 0; }
   .tag.in { opacity: 1; transform: translateY(0) scale(1); border-color: var(--teal); color: var(--teal); }
 
   /* JTBD triad */
-  .triad { display: flex; flex-direction: column; gap: 22px; margin-top: 16px; align-items: center; }
-  .triad-item { opacity: 0; transform: translateX(-24px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  .triad { position: relative; display: flex; flex-direction: column; gap: 26px; margin-top: 6px; align-items: flex-start; }
+  .triad-line-svg { position: absolute; left: -32px; top: 6px; width: 4px; height: calc(100% - 12px); overflow: visible; }
+  .triad-item {
+    display: flex; align-items: center; gap: 18px;
+    opacity: 0; transform: translateX(-24px); transition: opacity 0.4s ease, transform 0.4s ease;
+  }
   .triad-item.in { opacity: 1; transform: translateX(0); }
-  .triad-word { font-family: 'Archivo Black', sans-serif; font-size: 46px; color: var(--ink); }
-  .triad-def { font-family: 'IBM Plex Sans', sans-serif; font-size: 17px; color: var(--dim); margin-top: 2px; }
+  .triad-item svg { width: 32px; height: 32px; flex-shrink: 0; }
+  .triad-word { font-family: 'Archivo Black', sans-serif; font-size: 42px; color: var(--ink); line-height: 1; }
+  .triad-def { font-family: 'IBM Plex Sans', sans-serif; font-size: 16px; color: var(--dim); margin-top: 3px; }
 
   /* Icon row for the example scene */
   .icon-row { display: flex; gap: 56px; margin-bottom: 8px; }
@@ -122,6 +133,16 @@
     transition: border-color 0.4s ease, color 0.4s ease;
   }
   .map-node.filled { border-color: var(--teal); color: var(--ink); }
+
+  .node-progress {
+    position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .node-progress.show { opacity: 1; }
+  .ndot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: background 0.3s ease, transform 0.3s ease; }
+  .ndot.active { background: var(--teal); transform: scale(1.3); }
+  .ndot.done { background: var(--ink); }
 
   .player {
     position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
@@ -167,31 +188,39 @@
   <!-- Stop 1: The CTO's Question -->
   <div class="scene" id="scene-question">
     <div class="label">Stop 01 · The CTO's Question</div>
+    <svg class="quote-mark" viewBox="0 0 64 64" fill="none">
+      <path d="M14 20c-6 4-9 10-9 17 0 7 5 12 11 12s10-5 10-11c0-5-3-9-8-10 1-4 4-7 9-9z" fill="#4fd1c5"/>
+      <path d="M40 20c-6 4-9 10-9 17 0 7 5 12 11 12s10-5 10-11c0-5-3-9-8-10 1-4 4-7 9-9z" fill="#4fd1c5"/>
+    </svg>
     <div class="kinetic quote">"HOW CAN I SOLVE A CURRENT BUSINESS PROBLEM USING AI?"</div>
     <div class="tag-row" id="tag-row">
-      <div class="tag">COST</div>
-      <div class="tag">LATENCY</div>
-      <div class="tag">ACCURACY</div>
-      <div class="tag">DATA</div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M9.5 15.5c0 1 1 1.8 2.5 1.8s2.5-.8 2.5-1.8-1-1.5-2.5-1.8-2.5-.8-2.5-1.8 1-1.8 2.5-1.8 2.5.7 2.5 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>COST</div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>LATENCY</div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>ACCURACY</div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7" ry="3" stroke="currentColor" stroke-width="2"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" stroke="currentColor" stroke-width="2"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" stroke="currentColor" stroke-width="2"/></svg>DATA</div>
     </div>
   </div>
 
   <!-- Stop 2: The Framework (JTBD) -->
   <div class="scene" id="scene-framework">
     <div class="label">Stop 02 · The Framework</div>
-    <div class="kinetic big" style="margin-bottom: 10px;">JOBS TO BE DONE</div>
+    <div class="kinetic big" style="margin-bottom: 22px;">JOBS TO BE DONE</div>
     <div class="triad" id="triad">
+      <svg class="triad-line-svg" viewBox="0 0 4 300" preserveAspectRatio="none">
+        <line x1="2" y1="0" x2="2" y2="300" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+        <line id="triadLineFill" x1="2" y1="0" x2="2" y2="0" stroke="#4fd1c5" stroke-width="4"/>
+      </svg>
       <div class="triad-item" data-i="0">
-        <div class="triad-word">GOAL</div>
-        <div class="triad-def">what the user is trying to achieve</div>
+        <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#4fd1c5" stroke-width="2.5"/><circle cx="16" cy="16" r="5" stroke="#4fd1c5" stroke-width="2.5"/><circle cx="16" cy="16" r="1.4" fill="#4fd1c5"/></svg>
+        <div class="triad-text"><div class="triad-word">GOAL</div><div class="triad-def">what the user is trying to achieve</div></div>
       </div>
       <div class="triad-item" data-i="1">
-        <div class="triad-word">FORCES</div>
-        <div class="triad-def">what's pushing for the change</div>
+        <svg viewBox="0 0 32 32" fill="none"><path d="M18 3L7 18h7l-2 11 12-16h-8z" fill="#4fd1c5"/></svg>
+        <div class="triad-text"><div class="triad-word">FORCES</div><div class="triad-def">what's pushing for the change</div></div>
       </div>
       <div class="triad-item" data-i="2">
-        <div class="triad-word">FEAR</div>
-        <div class="triad-def">what's holding them back</div>
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 4L4 27h24z" stroke="#4fd1c5" stroke-width="2.5" stroke-linejoin="round"/><path d="M16 13v6" stroke="#4fd1c5" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="23" r="1.4" fill="#4fd1c5"/></svg>
+        <div class="triad-text"><div class="triad-word">FEAR</div><div class="triad-def">what's holding them back</div></div>
       </div>
     </div>
   </div>
@@ -231,6 +260,18 @@
     </div>
   </div>
 
+  <!-- Node-progress: tied to the SAME 6-node map this chunk is building
+       toward, not a separate per-chunk indicator - reinforces this is
+       progress on one thing, not three unrelated topics. -->
+  <div class="node-progress" id="nodeProgress">
+    <span class="ndot" data-n="0"></span>
+    <span class="ndot" data-n="1"></span>
+    <span class="ndot" data-n="2"></span>
+    <span class="ndot" data-n="3"></span>
+    <span class="ndot" data-n="4"></span>
+    <span class="ndot" data-n="5"></span>
+  </div>
+
   <div class="player">
     <button id="playBtn" aria-label="Play">▶</button>
     <span id="curTime">0:00</span>
@@ -267,6 +308,9 @@
   const markDoubt = document.getElementById('mark-doubt');
   const fearTags = document.querySelectorAll('.fear-tag');
   const mapNodes = document.querySelectorAll('.map-node');
+  const triadLineFill = document.getElementById('triadLineFill');
+  const nodeProgress = document.getElementById('nodeProgress');
+  const ndots = document.querySelectorAll('.ndot');
 
   const DURATION = 128.5;
 
@@ -307,15 +351,21 @@
     markDoubt.classList.remove('drawn');
     fearTags.forEach(f => f.classList.remove('in'));
     mapNodes.forEach(n => n.classList.remove('filled'));
+    nodeProgress.classList.remove('show');
+    ndots.forEach(d => d.classList.remove('active', 'done'));
 
     if (t < T.framework) {
       scenes.question.classList.add('active');
       tags.forEach((tg, i) => { if (t > T.factorTags + i * 0.3) tg.classList.add('in'); });
+      setNodeProgress(0);
     } else if (t < T.example) {
       scenes.framework.classList.add('active');
       if (t > T.goal) triadItems[0].classList.add('in');
       if (t > T.forces) triadItems[1].classList.add('in');
       if (t > T.fear) triadItems[2].classList.add('in');
+      const lineT = Math.max(0, Math.min(1, (t - T.goal) / (T.fear - T.goal)));
+      triadLineFill.setAttribute('y2', (lineT * 300).toFixed(0));
+      setNodeProgress(1);
     } else if (t < T.joint1) {
       scenes.example.classList.add('active');
       if (t > T.doubt) {
@@ -323,12 +373,21 @@
         markDoubt.classList.add('drawn');
       }
       fearTags.forEach((f, i) => { if (t > T.fearsStart + i * FEAR_STAGGER) f.classList.add('in'); });
+      setNodeProgress(2);
     } else {
       scenes.joint1.classList.add('active');
       mapNodes.forEach((n) => {
         if (n.dataset.i !== undefined) n.classList.add('filled');
       });
     }
+  }
+
+  function setNodeProgress(activeIdx) {
+    nodeProgress.classList.add('show');
+    ndots.forEach((d, i) => {
+      if (i < activeIdx) d.classList.add('done');
+      else if (i === activeIdx) d.classList.add('active');
+    });
   }
 
   let raf;
