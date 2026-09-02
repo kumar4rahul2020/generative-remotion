@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDE Vox Cut — Chunk 2 prototype</title>
+<style>
+  :root {
+    --bg: #000000;
+    --ink: #ffffff;
+    --dim: #5a5a5a;
+    --teal: #4fd1c5;
+    --mark: #ff6b4a;
+    --line: rgba(255,255,255,0.1);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  .stage { position: relative; width: 100vw; height: 100vh; background: var(--bg); }
+
+  .ruler {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; letter-spacing: 0.08em; color: var(--dim);
+    border-bottom: 1px solid var(--line);
+    z-index: 10;
+  }
+  .ruler .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--mark); display: inline-block; margin-right: 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.25s linear; pointer-events: none;
+    padding: 0 80px;
+  }
+  .scene.active { opacity: 1; }
+
+  .kinetic {
+    font-family: 'Archivo Black', Helvetica, Arial, sans-serif;
+    font-weight: 400; text-align: center; text-wrap: balance;
+    line-height: 1.02; letter-spacing: -0.01em;
+  }
+  .kinetic.huge { font-size: clamp(40px, 7vw, 108px); }
+  .kinetic.big { font-size: clamp(36px, 6vw, 88px); }
+  .kinetic.quote { font-size: clamp(28px, 3.6vw, 52px); max-width: 1400px; }
+
+  .label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 15px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal);
+    margin-bottom: 18px;
+  }
+
+  .mark-wrap { position: relative; display: inline-block; }
+  .mark-wrap svg {
+    position: absolute; left: -2%; right: -2%; bottom: -0.1em;
+    width: 104%; height: 0.2em; overflow: visible;
+  }
+  .mark-wrap path {
+    fill: none; stroke: var(--mark); stroke-width: 8; stroke-linecap: round;
+    stroke-dasharray: 900; stroke-dashoffset: 900;
+  }
+  .mark-wrap.drawn path { animation: draw 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* Factor tags (Cost/Latency/Accuracy/Data) */
+  .tag-row { display: flex; gap: 16px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
+  .tag {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 16px;
+    letter-spacing: 0.08em; padding: 10px 20px;
+    border: 2px solid var(--dim); border-radius: 999px; color: var(--dim);
+    opacity: 0; transform: translateY(10px) scale(0.9);
+    transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+  }
+  .tag.in { opacity: 1; transform: translateY(0) scale(1); border-color: var(--teal); color: var(--teal); }
+
+  /* JTBD triad */
+  .triad { display: flex; flex-direction: column; gap: 22px; margin-top: 16px; align-items: center; }
+  .triad-item { opacity: 0; transform: translateX(-24px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  .triad-item.in { opacity: 1; transform: translateX(0); }
+  .triad-word { font-family: 'Archivo Black', sans-serif; font-size: 46px; color: var(--ink); }
+  .triad-def { font-family: 'IBM Plex Sans', sans-serif; font-size: 17px; color: var(--dim); margin-top: 2px; }
+
+  /* Icon row for the example scene */
+  .icon-row { display: flex; gap: 56px; margin-bottom: 8px; }
+  .icon-row svg { width: 56px; height: 56px; opacity: 0.9; }
+
+  .callout {
+    margin-top: 26px; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600;
+    font-size: clamp(20px, 2.4vw, 30px); color: var(--ink); text-align: center;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .callout.show { opacity: 1; }
+
+  .fear-row { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; justify-content: center; max-width: 1100px; }
+  .fear-tag {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 18px;
+    padding: 12px 20px; border: 2px solid var(--mark); border-radius: 8px; color: var(--ink);
+    opacity: 0; transform: scale(0.85); transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .fear-tag.in { opacity: 1; transform: scale(1); }
+
+  /* Map (Joint 1) */
+  .map-row { display: flex; gap: 18px; margin-top: 12px; }
+  .map-node {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; font-size: 15px;
+    text-align: center; line-height: 1.3; padding: 16px 14px;
+    border: 2px solid var(--dim); border-radius: 6px; color: var(--dim); width: 120px;
+    transition: border-color 0.4s ease, color 0.4s ease;
+  }
+  .map-node.filled { border-color: var(--teal); color: var(--ink); }
+
+  .player {
+    position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 999px;
+    padding: 10px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--dim);
+    z-index: 20;
+  }
+  .player button {
+    background: var(--teal); color: #000; border: none; border-radius: 999px;
+    width: 34px; height: 34px; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .player button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .scrub { width: 320px; height: 4px; background: var(--line); border-radius: 2px; position: relative; cursor: pointer; }
+  .scrub-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--teal); border-radius: 2px; }
+  .tempo-sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
+  .tempo-label { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); }
+  #tempo { -webkit-appearance: none; appearance: none; width: 90px; height: 4px; background: var(--line); border-radius: 2px; outline: none; }
+  #tempo::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--teal); cursor: pointer; }
+  #tempo::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: var(--teal); cursor: pointer; }
+  #tempoVal { min-width: 42px; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<!--
+  HOW TO EDIT THIS FILE - same conventions as the Chunk 1 prototype.
+  Text: inside the .scene blocks. Timing: the T object in <script>
+  (seconds, already relative to this clip's own start - clip.mp3 begins
+  at 73.74s into the real 1.3x narration, i.e. right where Chunk 1 ends).
+  Chunk 2 = storyboard.md's Stops 1-3 + Joint 1 (CTO's Question, The
+  Framework/JTBD, The Example, first return to the map).
+-->
+
+<div class="stage">
+  <div class="ruler">
+    <span><span class="dot"></span>FDE INTERVIEW SERIES — PART 01</span>
+    <span id="timecode">T+00:00.0</span>
+  </div>
+
+  <!-- Stop 1: The CTO's Question -->
+  <div class="scene" id="scene-question">
+    <div class="label">Stop 01 · The CTO's Question</div>
+    <div class="kinetic quote">"HOW CAN I SOLVE A CURRENT BUSINESS PROBLEM USING AI?"</div>
+    <div class="tag-row" id="tag-row">
+      <div class="tag">COST</div>
+      <div class="tag">LATENCY</div>
+      <div class="tag">ACCURACY</div>
+      <div class="tag">DATA</div>
+    </div>
+  </div>
+
+  <!-- Stop 2: The Framework (JTBD) -->
+  <div class="scene" id="scene-framework">
+    <div class="label">Stop 02 · The Framework</div>
+    <div class="kinetic big" style="margin-bottom: 10px;">JOBS TO BE DONE</div>
+    <div class="triad" id="triad">
+      <div class="triad-item" data-i="0">
+        <div class="triad-word">GOAL</div>
+        <div class="triad-def">what the user is trying to achieve</div>
+      </div>
+      <div class="triad-item" data-i="1">
+        <div class="triad-word">FORCES</div>
+        <div class="triad-def">what's pushing for the change</div>
+      </div>
+      <div class="triad-item" data-i="2">
+        <div class="triad-word">FEAR</div>
+        <div class="triad-def">what's holding them back</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stop 3: The Example -->
+  <div class="scene" id="scene-example">
+    <div class="label">Stop 03 · The Example</div>
+    <div class="icon-row">
+      <svg viewBox="0 0 64 64" fill="none"><rect x="14" y="6" width="36" height="52" rx="6" stroke="#4fd1c5" stroke-width="3"/><circle cx="32" cy="48" r="2.5" fill="#4fd1c5"/></svg>
+      <svg viewBox="0 0 64 64" fill="none"><rect x="10" y="8" width="34" height="44" rx="3" stroke="#4fd1c5" stroke-width="3"/><circle cx="42" cy="42" r="12" stroke="#4fd1c5" stroke-width="3"/><path d="M51 51l8 8" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="34" r="22" stroke="#4fd1c5" stroke-width="3"/><path d="M32 22v12l9 6" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+    <div class="kinetic big">THE SALES REP</div>
+    <div class="callout" id="callout-doubt">
+      <span class="mark-wrap" id="mark-doubt">ZERO COST TODAY. WOULD THEY EVEN USE IT?
+        <svg viewBox="0 0 400 20" preserveAspectRatio="none"><path d="M5 12 Q 200 2 395 12" /></svg>
+      </span>
+    </div>
+    <div class="fear-row" id="fear-row">
+      <div class="fear-tag">WRONG PRICE?</div>
+      <div class="fear-tag">HOW LONG ON HOLD?</div>
+      <div class="fear-tag">SENSITIVE DATA?</div>
+      <div class="fear-tag">SWITCH SCREENS?</div>
+    </div>
+  </div>
+
+  <!-- Joint 1: Map, 3/6 filled -->
+  <div class="scene" id="scene-joint1">
+    <div class="label">This Video Covers Discovery</div>
+    <div class="map-row" id="map-row">
+      <div class="map-node" data-i="0">The CTO's<br/>Question</div>
+      <div class="map-node" data-i="1">The<br/>Framework</div>
+      <div class="map-node" data-i="2">The<br/>Example</div>
+      <div class="map-node">Metrics &amp;<br/>Constraints</div>
+      <div class="map-node">The<br/>Solution</div>
+      <div class="map-node">Proving the<br/>Value</div>
+    </div>
+  </div>
+
+  <div class="player">
+    <button id="playBtn" aria-label="Play">▶</button>
+    <span id="curTime">0:00</span>
+    <div class="scrub" id="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
+    <span id="durTime">2:08</span>
+    <span class="tempo-sep"></span>
+    <label for="tempo" class="tempo-label">TEMPO</label>
+    <input type="range" id="tempo" min="0.75" max="1.5" step="0.05" value="1">
+    <span id="tempoVal">1.00x</span>
+  </div>
+
+  <audio id="audio" preload="auto">
+    <source src="clip.mp3" type="audio/mpeg">
+  </audio>
+</div>
+
+<script>
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('playBtn');
+  const scrub = document.getElementById('scrub');
+  const scrubFill = document.getElementById('scrubFill');
+  const curTime = document.getElementById('curTime');
+  const timecode = document.getElementById('timecode');
+
+  const scenes = {
+    question: document.getElementById('scene-question'),
+    framework: document.getElementById('scene-framework'),
+    example: document.getElementById('scene-example'),
+    joint1: document.getElementById('scene-joint1'),
+  };
+  const tags = document.querySelectorAll('.tag');
+  const triadItems = document.querySelectorAll('.triad-item');
+  const calloutDoubt = document.getElementById('callout-doubt');
+  const markDoubt = document.getElementById('mark-doubt');
+  const fearTags = document.querySelectorAll('.fear-tag');
+  const mapNodes = document.querySelectorAll('.map-node');
+
+  const DURATION = 128.5;
+
+  // Real timestamps (already relative to clip start = 73.74s into the
+  // 1.3x narration, matching where Chunk 1 ends) - resolved against
+  // timestamps.json, same anchors storyboard.md uses, divided by 1.3.
+  const T = {
+    question: 0,
+    factorTags: 19.96,
+    framework: 32.37,
+    jtbdNamed: 45.16,
+    goal: 49.57,
+    forces: 52.45,
+    fear: 55.18,
+    example: 57.46,
+    doubt: 80.55,
+    fearsStart: 88.86,
+    fearsDetail: 98.58,
+    joint1: 124.04,
+  };
+  const FEAR_STAGGER = 3.2;
+
+  function fmt(t) {
+    const m = Math.floor(t / 60);
+    const s = (t % 60).toFixed(1).padStart(4, '0');
+    return `${m}:${s}`;
+  }
+
+  function render(t) {
+    timecode.textContent = `T+${t.toFixed(1)}s`;
+    curTime.textContent = fmt(t);
+    scrubFill.style.width = `${Math.min(100, (t / DURATION) * 100)}%`;
+
+    Object.values(scenes).forEach(s => s.classList.remove('active'));
+    tags.forEach(tg => tg.classList.remove('in'));
+    triadItems.forEach(it => it.classList.remove('in'));
+    calloutDoubt.classList.remove('show');
+    markDoubt.classList.remove('drawn');
+    fearTags.forEach(f => f.classList.remove('in'));
+    mapNodes.forEach(n => n.classList.remove('filled'));
+
+    if (t < T.framework) {
+      scenes.question.classList.add('active');
+      tags.forEach((tg, i) => { if (t > T.factorTags + i * 0.3) tg.classList.add('in'); });
+    } else if (t < T.example) {
+      scenes.framework.classList.add('active');
+      if (t > T.goal) triadItems[0].classList.add('in');
+      if (t > T.forces) triadItems[1].classList.add('in');
+      if (t > T.fear) triadItems[2].classList.add('in');
+    } else if (t < T.joint1) {
+      scenes.example.classList.add('active');
+      if (t > T.doubt) {
+        calloutDoubt.classList.add('show');
+        markDoubt.classList.add('drawn');
+      }
+      fearTags.forEach((f, i) => { if (t > T.fearsStart + i * FEAR_STAGGER) f.classList.add('in'); });
+    } else {
+      scenes.joint1.classList.add('active');
+      mapNodes.forEach((n) => {
+        if (n.dataset.i !== undefined) n.classList.add('filled');
+      });
+    }
+  }
+
+  let raf;
+  function loop() {
+    render(audio.currentTime);
+    raf = requestAnimationFrame(loop);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play();
+      playBtn.textContent = '❚❚';
+      raf = requestAnimationFrame(loop);
+    } else {
+      audio.pause();
+      playBtn.textContent = '▶';
+      cancelAnimationFrame(raf);
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    playBtn.textContent = '▶';
+    cancelAnimationFrame(raf);
+  });
+
+  scrub.addEventListener('click', (e) => {
+    const rect = scrub.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = Math.max(0, Math.min(DURATION, pct * DURATION));
+    render(audio.currentTime);
+  });
+
+  const tempo = document.getElementById('tempo');
+  const tempoVal = document.getElementById('tempoVal');
+  audio.preservesPitch = true;
+  tempo.addEventListener('input', () => {
+    const rate = parseFloat(tempo.value);
+    audio.playbackRate = rate;
+    tempoVal.textContent = `${rate.toFixed(2)}x`;
+  });
+
+  const params = new URLSearchParams(location.search);
+  const urlT = parseFloat(params.get('t'));
+  const initialT = isNaN(urlT) ? 0 : Math.max(0, Math.min(DURATION, urlT));
+  audio.currentTime = initialT;
+  render(initialT);
+</script>
+</body>
+</html>
