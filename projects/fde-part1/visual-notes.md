@@ -59,6 +59,14 @@ used only for the live-drawn underline sweep, never for anything else.
 for Chunk 1 after testing live via the prototype's tempo knob. See
 architecture.md and `remotion/scripts/apply-tempo.ts`.
 
+**Scope, confirmed for Chunk 2 onward**: Vox is the design language for
+the *whole video*, not just Chunk 1's title/framework content. Any
+diagram or graph the later stops need (the JTBD framework, the RAG
+pipeline, the security perimeter, etc.) gets built as a Vox-style
+typographic/annotated treatment — kinetic headlines, callouts, flat
+icons — not a reversion to the earlier bordered node-graph diagram
+language. One visual language throughout, not two mixed.
+
 ## Implication for the scene-component library
 
 Superseded again: the earlier diagram-component candidates (map node,

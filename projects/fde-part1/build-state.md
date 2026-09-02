@@ -57,9 +57,8 @@ Joint 1 after stops 1–3. No persistent camera/zoom state to hand off,
 since this design doesn't use one — Chunk 2 starts fresh from a static
 map, not from a specific camera position/scale.
 
-**Not yet done**: nothing outstanding for Chunk 1 itself. Open for Chunk
-2: whether it continues the flat/typographic Vox language (icons +
-kinetic headlines + callouts, per `visual-notes.md`) for stops 1–3, or
-introduces node-graph/diagram elements again now that the map itself has
-real content to fill in — worth deciding explicitly rather than
-defaulting either way.
+**Resolved for Chunk 2**: Vox stays the design language throughout,
+including any diagrams/graphs — e.g. the JTBD framework, the RAG
+pipeline in later chunks — get built as Vox-style typographic/annotated
+treatments, not a reversion to bordered node-graph diagrams. No mixing
+of the two languages within the video.
