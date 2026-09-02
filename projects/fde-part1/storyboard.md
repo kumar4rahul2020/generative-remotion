@@ -1,148 +1,146 @@
 # Storyboard — fde-part1
 
-**Review required before further Remotion code is written** — per architecture.md, this is a human checkpoint, not a rubber stamp.
+**Review required before Remotion code is written** — per architecture.md, this is a human checkpoint, not a rubber stamp.
 
-## Visual philosophy: one continuous canvas
+Rebuilt against the updated script.md and narration.wav (Sep 2 versions — the framework, content order, and closing section all changed from the previous draft). Timestamps below are re-resolved against the new `timestamps.json`.
 
-Per the decision in architecture.md (3Blue1Brown-style approach, prototyped
-and validated in `PhaseZoomPrototype.tsx`): this is **not** 13 independent
-diagrams cut one after another. It's one shared world; a camera pans and
-zooms through it; objects don't disappear between scenes, they **transform
-into** whatever comes next. A scene "boundary" below is a moment the camera
-arrives somewhere or an object becomes something else — not a cut.
+## Visual philosophy: map-first, guided, one final takeaway
 
-Two rules that make this hold together:
+Two things this storyboard is now built around, per discussion:
 
-- **Color is a language, not decoration.** Once a color is assigned to a
-  theme, it means that thing everywhere it reappears. Only "Capability"
-  (this phase) gets a live accent color for this video — Reliability,
-  Security, Scalability stay dim, since they belong to parts 2–4.
-- **Every transition is an answer to "what does this object become?"**
-  If a scene doesn't have one, that's a sign that it's actually a hard cut
-  masquerading as a scene — and worth reconsidering.
+1. **Takeaway over engagement.** The measure of success isn't "did they keep watching," it's "did they get something worth screenshotting." Continuous-canvas/camera-zoom (validated in `PhaseZoomPrototype.tsx`) is still the *mechanism*, but it now serves a **map-first, guided-return** structure rather than a pure one-way forward chain:
+   - Show the **complete map** of what this video covers, empty, before diving into any of it.
+   - Walk through it in guided order, returning to the map at a **few major joints** (not after every stop) so the viewer always knows where they are.
+   - End on the **one complete, filled-in map** — the payoff, the thing worth screenshotting. Sub-parts (Capability & Reliability, Security, Production) get their own videos and their own payoffs later — this video doesn't try to also deliver those.
+2. **Color as a language** and **every scene boundary is a transform, not a cut** — unchanged from before.
 
-## The world map (how objects carry through the whole video)
+## The map (confirmed)
 
-```
-[4-phase row] --zoom+morph--> [CTO Question hub] --spokes retract, hub becomes frame--> [JTBD lens]
-   (built, validated)             (built, validated)
+Scope = **this video's content** (the Discovery phase specifically), not the whole 4-part series. Six stops, walked in order:
 
-[JTBD lens] --camera pushes through the frame--> [sales-rep icon scene]
-[icon scene] --question marks emerge from the icons--> [rep's fears cluster]
-[fears cluster] --camera pulls back, cluster resolves into scale--> [juice-vs-squeeze balance]
-[balance] --the two pans separate and expand--> [metrics | constraints split-panel]
-[split-panel] --panels shrink to a starting node, pipeline extends right--> [RAG pipeline: Query→Retrieval→Generation→Citation]
-[pipeline] --same Query node forks into two race paths--> [manual vs RAG timing comparison]
-[comparison] --winning path's pipeline gets enclosed--> [security perimeter rings around it]
-[secured pipeline] --whole assembly shrinks to an icon--> [slides into CRM/browser window]
-[embedded icon] --pulls back onto a path leading forward--> [prototyping path: Golden Set→Prototype→Proof]
-[path's end] --camera pulls all the way back--> [4-phase row again, Capability now lit solid, others still dim — sets up parts 2-4]
-```
+1. The CTO's Question (cost, latency, accuracy, data)
+2. The Framework (Jobs to be Done: goal, forces, fear)
+3. The Example (sales rep scenario → the CTO's own doubt → the reps' fears)
+4. Business Metrics & Constraints
+5. The Conceptual Solution (RAG → latency & adoption, accuracy, cost, security)
+6. Proving the Value
 
-That last beat (returning to the opening framework) is new versus the
-previous draft — it bookends the video and makes "this is part 1 of 4" a
-visual promise, not just a spoken line.
+**Joints** (map returned to, "a few," not per-stop): after stops 1–3 as one group, after stop 4, after stop 5, and the final complete map after stop 6. Four returns total.
+
+## The series framework (context only, not the payoff)
+
+Renamed/restructured from the old script: **Discovery → Capability & Reliability → Security → Production.** This video covers Discovery only. It appears briefly at the very start (establishing shot) and very briefly again after the Discovery map's payoff (naming what's next), but it does **not** compete with the Discovery map as the thing to screenshot — it's on screen for seconds, not held.
 
 ---
 
 ## Scene 1: Title
 
-- **Time**: 00:00.140 → 00:08.080
-- **Cue**: "Hi guys, welcome to this four-part"
+- **Time**: 00:00.050 → 00:09.220
+- **Cue**: "Hi guys, welcome to this"
 - **Visual**: Series title fades in, centered, alone on black.
-- **Transform into next**: Title dissolves outward/upward as the 4-phase row fades in at the same center point — the row inherits the title's screen position, so it reads as "the title *becomes* the framework," not a cut.
+- **Transform into next**: Title dissolves as the 4-phase series row fades in at the same point.
 
-## Scene 2: The 4-phase framework
+## Scene 2: The series framework (establishing shot)
 
-- **Time**: 00:08.080 → 00:48.630
-- **Cue**: "In hindsight, I was able to break the"
-- **Labels**: Capability, Reliability, Security, Scalability
-- **Visual**: Four boxes draw in left to right, connected by a line. *(Built and validated in the prototype.)*
-- **Transform into next**: Camera zooms into "Capability" specifically — the other three fade as the camera's focus leaves them behind, not because they're deleted.
+- **Time**: 00:09.220 → 01:28.900
+- **Cue**: "In hindsight I was able"
+- **Labels**: Discovery, Capability & Reliability, Security, Production
+- **Visual**: Four boxes draw in left to right, connected by a line — same mechanic as the validated prototype, updated labels.
+- **Transform into next**: Camera zooms into "Discovery" specifically (not "Capability" — framework changed). Other three fade as focus leaves them.
 
-## Scene 3: The CTO's question (hub-and-spoke)
+## Scene 3: "This is part one" → the Discovery map reveals, empty
 
-- **Time**: 00:48.630 → 01:14.500
-- **Cue**: "The first question is a CTO asks,"
-- **Labels**: AI, Initial Conversation, Cost, Latency, Accuracy, Data
-- **Visual**: The Capability box **morphs in place** into "CTO Question" (same box, label crossfades, border shifts from accent color to neutral white — it's no longer *the phase*, it's *what happens inside* the phase). Camera eases outward as 6 spokes extend radially. *(Built and validated in the prototype.)*
-- **Transform into next**: Spokes retract back into the hub (reverse of how they extended); the hub box itself widens into a frame/rectangle — this becomes the JTBD lens. Nothing new enters; existing objects contract and reshape.
+- **Time**: 01:28.900 → 01:35.860
+- **Cue**: "This is part one"
+- **Visual**: The zoomed-in "Discovery" box **expands into the full 6-stop map** — the box doesn't just hold a new label this time, it becomes the frame for the entire outline: six empty/outline nodes in sequence (question → framework → example → metrics → solution → proof), connected by a path, all unfilled. Held briefly, giving the viewer the whole shape before anything is explained.
+- **Transform into next**: Camera pushes into stop 1 (the first node brightens and fills the frame).
 
-## Scene 4a: The JTBD lens
+## Stop 1: The CTO's Question
 
-- **Time**: 01:14.500 → 01:32.590
-- **Cue**: "So here goes the answer. Before building"
-- **Labels**: Jobs to be Done, What's the problem?, Who's the user?, What does success look like?
-- **Visual**: Inside the frame (the former hub), three questions reveal one at a time as a vertical stack, like items coming into focus through a lens.
-- **Transform into next**: Camera pushes *forward through* the frame — the lens's border expands past the edges of the screen (a "walking through a doorway" push), which is how we cut to a concrete instance without it feeling like a cut.
+- **Time**: 01:35.860 → 02:17.940
+- **Cue**: "the interview begins with a quick introduction"
+- **Labels**: Cost, Latency, Accuracy, Data
+- **Visual**: The interviewer's setup, then the CTO's question itself appears as a quoted callout, with the four factors (Cost, Latency, Accuracy, Data) as small tags beneath it — these four recur as a throughline across the whole video (each gets addressed later in Stop 5).
+- **Transform into next**: The quote card shrinks into node 1's position on the (currently off-screen) map, and a lens/frame opens for stop 2 in its place.
 
-## Scene 4b: The sales rep's problem
+## Stop 2: The Framework (JTBD)
 
-- **Time**: 01:32.590 → 02:15.760
-- **Cue**: "To take an example, I explained with a sales representative scenario"
-- **Visual**: Icon scene: call/hold icon, a stack of PDF pages with a magnifying glass scanning down through them, a clock ticking forward. No labels — physical dramatization of the problem.
-- **Transform into next**: The icons stay on screen; new elements emerge *from* them (not a new scene wiping the old one).
+- **Time**: 02:17.940 → 02:50.560
+- **Cue**: "Now to the answer"
+- **Labels**: Goal, Forces, Fear
+- **Visual**: The canonical JTBD triad reveals inside the frame, one at a time: **Goal** (what they're trying to achieve), **Forces** (what's pushing for the change), **Fear** (what's holding them back). This is the lens the example is about to be run through.
+- **Transform into next**: The frame pushes forward (same "walk through the doorway" push used before) into a concrete instance of Goal/Forces/Fear — the example.
 
-## Scene 4c: The rep's fears
+## Stop 3: The Example
 
-- **Time**: 02:15.760 → 02:32.240
-- **Cue**: "However, they are afraid of some risk. They keep wondering, what if the AI gives me the"
-- **Labels**: Wrong price?, How long on hold?, Sensitive data?, Switch screens?
-- **Visual**: Question-mark nodes pop up one at a time, each visually tethered to the icon it worries about (the price fear near the PDF stack, the hold-time fear near the clock, etc.) — the one deliberate node-cluster in the video, because the content genuinely is a scattered list of distinct worries.
-- **Transform into next**: Camera pulls back; the whole icon+worry cluster contracts into a single small shape that becomes one pan of a balance scale.
+- **Time**: 02:50.560 → 04:17.120
+- **Cue**: "Let's take an example"
+- **Visual**: Three beats, camera holding roughly in place, objects accumulating rather than cutting:
+  - **02:50.560** — icon scene: call/hold icon, PDF stack with a scanning magnifying glass, a ticking clock (the rep's problem, dramatized physically, no labels).
+  - **03:20.580** ("Your fear is why you should invest...") — the CTO's own doubt appears as a small callout beside the icons: zero-cost-today vs. would-they-even-use-it.
+  - **03:31.380** ("step into the shoes of the sales rep...") — question-mark nodes pop up one at a time, each tethered to the icon it worries about: *wrong price / lose street cred*, *how long on hold*, *sensitive data*, *switch screens*.
+- **Transform into next (Joint 1)**: Everything from stops 1–3 contracts back into their three map-node positions, which snap into view as the camera pulls all the way back — **first return to the map**, three of six nodes now filled, three still outline.
 
-## Scene 4d: Is it worth it?
+## Joint 1: Map, 3/6 filled
 
-- **Time**: 02:32.240 → 02:47.950
-- **Cue**: "That also will be explained in the CTO's concern, naturally, in which the CTO"
-- **Labels**: Juice, Squeeze
-- **Visual**: A balance scale — the rep's-problem cluster is now one pan ("Squeeze"/cost side), a second pan ("Juice"/payoff) rises into view opposite it. The scale tips as the CTO's doubt is voiced.
-- **Transform into next**: The two pans detach from the scale's beam and slide apart, expanding into two full-height columns as they separate.
+- **Time**: ~04:17.120 (brief, a few seconds)
+- **Visual**: The map from Scene 3's reveal, now with nodes 1–3 solid/filled and a connecting line drawn up to node 4. No new content — pure orientation beat.
+- **Transform into next**: Camera pushes into node 4.
 
-## Scene 5: Business metrics vs. constraints
+## Stop 4: Business Metrics & Constraints
 
-- **Time**: 02:47.950 → 03:31.110
-- **Cue**: "Deriving from these discovery questions,"
-- **Labels**: Business Metrics, Operational Constraints, Handle Time, Close Rate, DAU, Cost-Benefit
-- **Visual**: The two ex-scale-pans, now full columns: left "Business Metrics" fills with a list (Handle Time, Close Rate, DAU), right "Operational Constraints" fills in parallel.
-- **Transform into next**: Both columns collapse back toward center into a single point — the seed for the pipeline that follows (the metrics/constraints *become* the requirement that the RAG pipeline is the answer to).
+- **Time**: 04:17.120 → 05:06.340
+- **Cue**: "we get two crucial things"
+- **Labels**: Handle Time, Close Rate, DAU, Correct Answers, Instant, Data Protection, Seamless Integration, Cost
+- **Visual**: Split-panel: left "Business Metrics" fills as a list (Handle Time, Close Rate, DAU), right "Operational Constraints" fills in parallel (Correct Answers, Instant, Data Protection, Seamless Integration, Cost).
+- **Transform into next (Joint 2)**: Both columns collapse toward center and snap back into the map — **second return**, node 4 now filled too.
 
-## Scene 6: The RAG pipeline
+## Joint 2: Map, 4/6 filled
 
-- **Time**: 03:31.110 → 04:40.630
-- **Cue**: "Once we have had the product"
+- **Time**: ~05:06.340 (brief)
+- **Visual**: Map with nodes 1–4 solid, connecting line drawn to node 5.
+- **Transform into next**: Camera pushes into node 5 — the longest stop, so the push-in is slightly more deliberate/slower, signaling "this one has more inside it."
+
+## Stop 5: The Conceptual Solution
+
+- **Time**: 05:06.340 → 08:16.180 (long — four internal beats, same node, camera doesn't leave)
+- **Cue**: "the conceptual solution"
 - **Labels**: Query, Retrieval, Generation, Citation
-- **Visual**: From that collapsed point, a left-to-right pipeline extends: Query → Retrieval → Generation → Citation, each stage appearing in sequence with arrows — mirroring RAG's actual mechanics.
-- **Transform into next**: The "Query" node duplicates/forks — one copy stays on the built pipeline, a second copy appears above/below starting a second, manual path. Same origin, two branches.
+- Four sub-beats inside this one map node, each answering one of the four factors from Stop 1's callout (Cost/Latency/Accuracy/Data tags literally fly back in and get checked off as each is addressed — this is the throughline payoff):
+  - **05:06.340** — RAG pipeline builds left to right: Query → Retrieval → Generation → Citation. Immediately followed (05:49.860, "adoption") by the embed-into-CRM/browser motion — bundled here since the script bundles latency + adoption in one breath.
+  - **06:14.420** ("address concerns about data accuracy") — citations/verification: a source-link tag attaches to the Citation node from the pipeline above (reuses the object, doesn't introduce a new one).
+  - **07:03.870** ("concerns on the cost") — the ROI-equation beat (hourly rep rate × calls vs. LLM token cost) — the one we flagged earlier as underused; this is where it belongs now, explicit.
+  - **07:31.240** ("concerns on security") — containment rings draw in around the whole pipeline assembly, same as before.
+- **Transform into next (Joint 3)**: The whole solution assembly (pipeline + rings) shrinks into node 5's map position — **third return**.
 
-## Scene 7: Manual search vs. RAG (the race)
+## Joint 3: Map, 5/6 filled
 
-- **Time**: 04:40.630 → 05:05.700
-- **Cue**: "Regarding wait time, a RAG system"
-- **Labels**: Manual Search, RAG System
-- **Visual**: Two paths race from the same Query point — the manual branch crawls (a slow-filling progress bar / long timer), the RAG branch (the pipeline just built) completes almost instantly. Direct, visual proof of the speed claim rather than a stated comparison.
-- **Transform into next**: The manual branch fades out (it lost the race); the winning RAG pipeline remains, and containment rings begin drawing in around it from the outside edges of the screen.
+- **Time**: ~08:16.180 (brief)
+- **Visual**: Map with nodes 1–5 solid, line drawn to node 6.
+- **Transform into next**: Camera pushes into node 6, the last stop.
 
-## Scene 8: The security perimeter
+## Stop 6: Proving the Value
 
-- **Time**: 05:05.700 → 05:31.810
-- **Cue**: "To address security, we have to mention"
-- **Labels**: Public Internet, VPC / Private Endpoint, Enterprise Data
-- **Visual**: Concentric rings draw in around the pipeline: outer "Public Internet" (crossed out), middle "VPC / Private Endpoint", inner ring containing the pipeline itself, now labeled implicitly as "Enterprise Data" — the system we've been building is shown living inside its own secure perimeter, not a separate diagram.
-- **Transform into next**: The whole ringed assembly shrinks uniformly into a single small icon.
+- **Time**: 08:16.180 → 08:47.370
+- **Cue**: "To conclude the initial consultation"
+- **Labels**: Golden Set, Rapid Prototype
+- **Visual**: A short path within the node: golden-set queries → rapid prototype, resolving to a checkmark.
+- **Transform into next**: Node 6 fills; camera pulls back for the last time.
 
-## Scene 9: Embedding into existing tools
+## Payoff: The complete map
 
-- **Time**: 05:31.810 → 05:55.860
-- **Cue**: "A tool would be useless if the"
-- **Labels**: CRM, Browser Extension
-- **Visual**: The shrunk icon slides toward and merges into a CRM window icon / browser bar that fades in beside it — dramatizing "never switch screens" as a literal merge.
-- **Transform into next**: Camera pulls back further; the embedded icon becomes one dot on a path that extends forward.
+- **Time**: ~08:47.370 → 08:58s (held, the longest static hold in the video)
+- **Visual**: All six nodes filled, full path connected, nothing moving except perhaps a subtle final glow/settle. **This is the screenshot.** Held deliberately longer than any other single frame in the video — the one moment explicitly designed to be paused on.
 
-## Scene 10: The prototyping path
+## Closing: series context (brief, not competing with the payoff)
 
-- **Time**: 05:55.860 → 06:28.640
-- **Cue**: "And at last, to conclude the"
-- **Labels**: Golden Set of Queries, Rapid Prototype, Proof of Concept
-- **Visual**: A path extends from the embedded-icon dot through three milestones in sequence.
-- **Transform into next (video close)**: Camera pulls all the way back out — the path's endpoint resolves into the original 4-phase row from Scene 2. "Capability" now renders solid/complete in its accent color; Reliability, Security, Scalability remain dim outlines — the literal setup for parts 2–4.
+- **Time**: 08:47.370 → 09:00.340
+- **Cue**: "This led to a natural segue" (approx., see note)
+- **Visual**: Camera pulls back further, past the Discovery map, to reveal it sitting inside the outer 4-phase series row from Scene 2 — Discovery now solid/complete, "Capability & Reliability" highlighted as next, Security/Production still dim. On screen only a few seconds — a pointer to part 2, not a second payoff.
+- **Note**: exact cue timestamp approximated — whisper split "segue" into two sub-word tokens ("se"/"gue"), so the anchor used is the stable phrase immediately before it ("before committing to a full build," 08:47.370).
+
+## Outro
+
+- **Time**: 09:00.340 → 09:42.820 (end)
+- **Cue**: "I understand that the answer provided here"
+- **Visual**: Reflective/personal closing (framework-over-memorized-details, feedback request, thank-you). Held over the dimmed series-framework shot from the closing beat, or fades to a simple sign-off card — no new diagram content needed here, this is the presenter speaking directly, and the visual shouldn't compete with what was already delivered as the payoff.
