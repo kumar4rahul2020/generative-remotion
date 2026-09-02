@@ -70,3 +70,49 @@ including any diagrams/graphs — e.g. the JTBD framework, the RAG
 pipeline in later chunks — get built as Vox-style typographic/annotated
 treatments, not a reversion to bordered node-graph diagrams. No mixing
 of the two languages within the video.
+
+## Chunk 2: CTO's Question → Framework → Example → Metrics & Constraints — LOCKED
+
+**Design**: same Vox language as Chunk 1, richer than the first draft —
+icons added to every tag/concept (not just phase beats), a progressive
+connecting line for the Goal/Forces/Fear triad (reused from Chunk 1's
+line-fill fix), and a 6-dot node-progress indicator tied to the actual
+map (missing from the first draft, added after review). Validated as
+`remotion/prototypes/fde-part1-vox-chunk2/index.html`; **not yet ported**
+to Remotion.
+
+**Scope note**: originally planned as Stops 1–3 → Joint 1 per
+storyboard.md; extended through Stop 4 → Joint 2 after review caught it
+ending mid-argument (framework introduced and applied, never resolved).
+See the chunk plan note above.
+
+**Beats** (seconds, relative to Chunk 1's end at ~73.74s into the 1.3x
+narration — i.e. absolute time = 73.74 + value below):
+1. CTO's Question — quote + Cost/Latency/Accuracy/Data tags (with icons) — 0s → ~32.4s
+2. The Framework — "JOBS TO BE DONE", Goal/Forces/Fear with connecting line — ~32.4s → ~57.5s
+3. The Example — 3 icons (call/PDF/clock), CTO's doubt callout, 4 staggered fear tags — ~57.5s → ~124.0s
+4. Joint 1 (brief, map 3/6 filled) — ~124.0s → ~128.7s
+5. Metrics & Constraints — two-column split (Business Metrics / Operational Constraints), each item staggered — ~128.7s → ~161.9s
+6. Joint 2 (map, 4/6 filled) — ~161.9s → end (~166.5s)
+
+**End state** (what Chunk 3 continues from): 6-node map, 4 of 6 filled
+(CTO's Question, Framework, Example, Metrics & Constraints solid; The
+Solution and Proving the Value still dim/outline). Same flat/typographic
+map styling as Chunk 1's ending — no camera/zoom state to hand off.
+
+**Not yet done**: port into Remotion (extend `Chunk1.tsx` or start a
+`Chunk2.tsx` — decide which when porting; nothing in the current
+`Chunk1.tsx` structure prevents either).
+
+## Chunk boundary check for Chunk 3 (Stop 5 → Joint 3)
+
+Applying the lesson from Chunk 2's fix explicitly, checked before
+building: does Stop 5 alone complete a thought? **Yes** — storyboard.md
+already designed Stop 5 as "the throughline payoff": it resolves all four
+factors from Stop 1's CTO-question callout (Cost, Latency, Accuracy,
+Data), one per internal sub-beat (RAG pipeline+adoption, accuracy,
+cost/ROI, security). By the end of Stop 5, nothing from Stops 1–4 is left
+unresolved. Stop 6 (Proving the Value) reads as a separate, self-contained
+coda ("how do we know it'll work") rather than a continuation Stop 5
+depends on — so Chunk 3 = Stop 5 → Joint 3 alone, unlike Chunk 2, does
+not need extending.
