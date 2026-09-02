@@ -129,6 +129,27 @@ rather than relying on remembering a manual copy step.
 A chunk is a commit. If a chunk goes the wrong direction, reverting it
 doesn't touch anything before or after it.
 
+## Tempo: 1.3x, pitch-corrected
+
+Locked in for Chunk 1 after live-testing via the HTML prototype's tempo
+slider (bound to `audio.playbackRate`) — narration plays 30% faster
+throughout, pitch-corrected, not just visual pacing tightened. Real
+runtime shrinks accordingly (Chunk 1: ~96s → ~74s).
+
+**Why this doesn't require re-running whisper**: `atempo` is a uniform
+linear time compression, so every existing timestamp simply divides by the
+rate — `remotion/scripts/apply-tempo.ts <project> <rate>` does exactly
+that: speeds up `narration.wav` into `narration-<rate>x.wav` via ffmpeg's
+`atempo` filter, and writes `timestamps-<rate>x.json` with every
+`startMs`/`endMs` divided by the rate. Same public-copy-sync convention as
+`align.ts`.
+
+Applied for Chunk 1; the expected default for future chunks unless a
+later review decides otherwise (it's a project-wide narration property,
+not naturally a per-chunk one — re-litigate at the next chunk's checkpoint
+if it stops feeling right, but don't assume it silently carries or
+silently doesn't).
+
 ## Visual-design prototyping: plain HTML before Remotion
 
 For a new visual *direction* (not a tweak to an approved one) — e.g.
@@ -173,23 +194,24 @@ than redefining it — consistent with the "no fallback aesthetic yet" decision.
 ## Reusable scene-component library
 
 Not pre-built — intent.md's decision is that the first project determines
-what's actually needed. Superseded once by the shift to diagram-only visuals
-(no captions/bullets, per `visual-notes.md`) and again by the map-first
-restructure — current candidates, from the approved storyboard:
+what's actually needed. Superseded twice already (diagram-only, then
+map-first) before settling — current candidates, from the **Vox-style
+approach locked in for Chunk 1** (see `visual-notes.md`):
 
-- **The camera/world system itself** (persistent coordinate space + animated
-  camera transform) — proven in `PhaseZoomPrototype.tsx`, this is the one
-  piece almost certain to be reused across all of parts 2–4, not just within
-  this video.
-- **Map node** (outline → filled, the recurring unit the whole video returns
-  to)
-- **Icon scene** (call/hold/PDF/clock — dramatizing a problem physically)
-- **Containment rings**, **split-panel**, **pipeline-flow**, **balance
-  scale** — one-off diagram types from Stop 5, may or may not recur in later
-  parts; not worth generalizing until they do.
+- **Kinetic headline** (Archivo Black, huge, centered) — one per beat.
+- **Annotated callout** — a short phrase with a live-drawn coral underline
+  sweep, timed to when it's actually said. The core new mechanism; almost
+  certainly reused every beat of every future chunk.
+- **Flat topic icon** — simple line-art SVG, one per topic/phase.
+- **Phase-progress dots** — position indicator, content-agnostic, directly
+  reusable wherever a chunk has sequential beats.
+- **Map node** (outline → filled) — still used for the Discovery-map
+  ending, now styled flat/typographic to match rather than as a bordered
+  diagram box.
 
-These get built as project-specific scenes first; only get promoted into the
-shared component library once they're proven and reused.
+Given the direction changed twice already after being "approved," these
+still shouldn't be promoted into `remotion/src/components/` until they've
+survived contact with a second real chunk, not just Chunk 1.
 
 ## Repository layout
 

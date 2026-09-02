@@ -4,6 +4,9 @@
 
 Rebuilt against the updated script.md and narration.wav (Sep 2 versions — the framework, content order, and closing section all changed from the previous draft). Timestamps below are re-resolved against the new `timestamps.json`.
 
+> **Status note (post-Chunk-1-build): visual TREATMENT below is stale for Scenes 1–3, content/timing is not.**
+> After building Scenes 1–3 (= Chunk 1) in the diagram/map style this document describes, the ~80s framework segment felt static and risked losing viewer attention. Chunk 1 was rebuilt in an editorial/Vox-style treatment instead — see `visual-notes.md` for the new visual language and `remotion/prototypes/fde-part1-vox-preview/` for the locked, tempo-adjusted (1.3x) design. **Scenes 1–3's visual descriptions below no longer reflect what was actually built.** Stops 1–6 (the rest of the video, not yet built) keep their content/timing as a reasonable starting point, but their *visual treatment* should be expected to move toward the Vox-style language too, not necessarily stay diagram-only — revisit per-chunk as each one is actually built, per architecture.md's sequential-chunk process.
+
 ## Visual philosophy: map-first, guided, one final takeaway
 
 Two things this storyboard is now built around, per discussion:

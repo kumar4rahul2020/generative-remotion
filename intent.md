@@ -129,10 +129,16 @@ filmed material.
   recorded narration) determines what scene types are actually needed; the
   reusable library gets extracted from what that first build produces, not
   guessed at in advance.
-- **Aesthetic fallback.** None for now. The white-on-black minimalist
-  baseline is the only style — no alternate style or override mechanism
-  until there's a concrete reason for one. Revisit only after seeing how the
-  first video turns out.
+- **Aesthetic fallback.** Revisited after seeing the first video's build in
+  practice, as planned. The original no-text/diagram-only treatment
+  produced a ~80s stretch that felt static and risked losing viewer
+  attention — a concrete problem, not a preference change — so Chunk 1
+  moved to an editorial/Vox-style treatment (kinetic typography as
+  designed emphasis, annotation marks, flat icons; see
+  `projects/fde-part1/visual-notes.md`). Still one baseline, not a
+  per-project menu — white-on-black, restrained, typography-led all still
+  hold — but "no on-screen text at all" is no longer part of that
+  baseline's definition.
 
 ## Open questions (to resolve as the tool develops)
 
