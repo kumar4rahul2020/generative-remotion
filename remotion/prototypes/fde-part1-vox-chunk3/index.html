@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDE Vox Cut — Chunk 3 prototype</title>
+<style>
+  :root {
+    --bg: #000000; --ink: #ffffff; --dim: #5a5a5a; --teal: #4fd1c5; --mark: #ff6b4a;
+    --line: rgba(255,255,255,0.1);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif; overflow: hidden; }
+  .stage { position: relative; width: 100vw; height: 100vh; background: var(--bg); }
+
+  .ruler {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 32px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    letter-spacing: 0.08em; color: var(--dim); border-bottom: 1px solid var(--line); z-index: 10;
+  }
+  .ruler .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mark); display: inline-block; margin-right: 8px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* Persistent throughline: the SAME 4 factor tags from Chunk 2's Stop 1,
+     each getting checked off live as this chunk resolves it. */
+  .throughline {
+    position: absolute; top: 62px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 14px; z-index: 10; opacity: 0; transition: opacity 0.4s ease;
+  }
+  .throughline.show { opacity: 1; }
+  .tl-tag {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 14px;
+    letter-spacing: 0.06em; padding: 8px 16px;
+    border: 2px solid var(--dim); border-radius: 999px; color: var(--dim);
+    transition: border-color 0.4s ease, color 0.4s ease;
+  }
+  .tl-tag svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .tl-tag.resolved { border-color: var(--teal); color: var(--teal); }
+  .tl-tag .check { display: none; }
+  .tl-tag.resolved .check { display: inline; }
+  .tl-tag.resolved .unchecked { display: none; }
+
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.25s linear; pointer-events: none; padding: 0 80px;
+  }
+  .scene.active { opacity: 1; }
+
+  .kinetic { font-family: 'Archivo Black', Helvetica, Arial, sans-serif; font-weight: 400; text-align: center; text-wrap: balance; line-height: 1.02; letter-spacing: -0.01em; }
+  .kinetic.huge { font-size: clamp(48px, 8vw, 120px); }
+  .kinetic.big { font-size: clamp(36px, 6vw, 84px); }
+
+  .label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 18px;
+  }
+
+  /* RAG pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; margin-top: 20px; }
+  .pipe-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0; transform: scale(0.8); transition: opacity 0.35s ease, transform 0.35s ease;
+    width: 160px;
+  }
+  .pipe-stage.in { opacity: 1; transform: scale(1); }
+  .pipe-stage svg { width: 44px; height: 44px; }
+  .pipe-stage-label { font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 18px; }
+  .pipe-arrow { width: 50px; height: 2px; background: var(--dim); position: relative; }
+  .pipe-arrow.drawn { background: var(--teal); }
+  .pipe-arrow::after {
+    content: ''; position: absolute; right: -1px; top: -3px;
+    border: 4px solid transparent; border-left-color: var(--dim);
+  }
+  .pipe-arrow.drawn::after { border-left-color: var(--teal); }
+
+  /* Latency comparison */
+  .compare-row { display: flex; align-items: center; gap: 40px; margin-top: 30px; }
+  .compare-item { text-align: center; opacity: 0; transition: opacity 0.4s ease; }
+  .compare-item.in { opacity: 1; }
+  .compare-num { font-family: 'Archivo Black', sans-serif; font-size: 64px; color: var(--dim); }
+  .compare-item.win .compare-num { color: var(--teal); }
+  .compare-sub { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--dim); margin-top: 6px; letter-spacing: 0.06em; }
+  .compare-arrow { font-family: 'Archivo Black', sans-serif; font-size: 40px; color: var(--dim); }
+
+  .sub-callout {
+    margin-top: 26px; display: flex; align-items: center; gap: 14px;
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: clamp(18px, 2.2vw, 26px);
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .sub-callout.show { opacity: 1; }
+  .sub-callout svg { width: 32px; height: 32px; flex-shrink: 0; }
+
+  .mark-wrap { position: relative; display: inline-block; }
+  .mark-wrap svg.underline { position: absolute; left: -3%; right: -3%; bottom: -0.12em; width: 106%; height: 0.22em; overflow: visible; }
+  .mark-wrap path { fill: none; stroke: var(--mark); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 700; stroke-dashoffset: 700; }
+  .mark-wrap.drawn path { animation: draw 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* ROI equation */
+  .equation { display: flex; align-items: center; gap: 24px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+  .eq-term {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 20px;
+    padding: 14px 22px; border: 2px solid var(--dim); border-radius: 8px; color: var(--ink);
+    opacity: 0; transform: translateY(10px); transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .eq-term.in { opacity: 1; transform: translateY(0); }
+  .eq-op { font-family: 'Archivo Black', sans-serif; font-size: 28px; color: var(--dim); opacity: 0; transition: opacity 0.35s ease; }
+  .eq-op.in { opacity: 1; }
+  .eq-result.in { border-color: var(--teal); color: var(--teal); }
+
+  /* Security rings */
+  .rings { position: relative; width: 420px; height: 420px; margin-top: 10px; }
+  .ring { position: absolute; border-radius: 50%; border: 2px solid var(--dim); display: flex; align-items: flex-start; justify-content: center; opacity: 0; transform: scale(0.85); transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.4s ease; }
+  .ring.in { opacity: 1; transform: scale(1); }
+  .ring-outer { width: 420px; height: 420px; top: 0; left: 0; }
+  .ring-mid { width: 280px; height: 280px; top: 70px; left: 70px; }
+  .ring-inner { width: 140px; height: 140px; top: 140px; left: 140px; border-color: var(--teal); background: rgba(79,209,197,0.08); align-items: center; }
+  .ring-label { font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.06em; color: var(--dim); margin-top: 12px; text-align: center; }
+  .ring-inner .ring-label { color: var(--teal); margin-top: 0; font-size: 15px; font-weight: 500; }
+  .ring-outer.crossed .ring-label {
+    color: var(--mark); text-decoration: line-through; text-decoration-thickness: 2px;
+  }
+
+  .map-row { display: flex; gap: 18px; margin-top: 12px; }
+  .map-node { font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; font-size: 15px; text-align: center; line-height: 1.3; padding: 16px 14px; border: 2px solid var(--dim); border-radius: 6px; color: var(--dim); width: 120px; transition: border-color 0.4s ease, color 0.4s ease; }
+  .map-node.filled { border-color: var(--teal); color: var(--ink); }
+
+  .player { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--dim); z-index: 20; }
+  .player button { background: var(--teal); color: #000; border: none; border-radius: 999px; width: 34px; height: 34px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .player button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .scrub { width: 320px; height: 4px; background: var(--line); border-radius: 2px; position: relative; cursor: pointer; }
+  .scrub-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--teal); border-radius: 2px; }
+  .tempo-sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
+  .tempo-label { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); }
+  #tempo { -webkit-appearance: none; appearance: none; width: 90px; height: 4px; background: var(--line); border-radius: 2px; outline: none; }
+  #tempo::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--teal); cursor: pointer; }
+  #tempo::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: var(--teal); cursor: pointer; }
+  #tempoVal { min-width: 42px; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<!--
+  HOW TO EDIT - same conventions as Chunks 1-2.
+  Chunk 3 = storyboard.md's Stop 5 alone (verified complete on its own -
+  see build-state.md's "Chunk boundary check"). Resolves all four factors
+  from Chunk 2's opening tags (Cost/Latency/Accuracy/Data) via the
+  persistent .throughline row at the top, checked off live.
+-->
+
+<div class="stage">
+  <div class="ruler">
+    <span><span class="dot"></span>FDE INTERVIEW SERIES — PART 01</span>
+    <span id="timecode">T+00:00.0</span>
+  </div>
+
+  <div class="throughline" id="throughline">
+    <div class="tl-tag" id="tl-cost">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path class="unchecked" d="M12 7v10M9.5 15.5c0 1 1 1.8 2.5 1.8s2.5-.8 2.5-1.8-1-1.5-2.5-1.8-2.5-.8-2.5-1.8 1-1.8 2.5-1.8 2.5.7 2.5 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="check" d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      COST
+    </div>
+    <div class="tl-tag" id="tl-latency">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path class="unchecked" d="M12 7v5l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="check" d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      LATENCY
+    </div>
+    <div class="tl-tag" id="tl-accuracy">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle class="unchecked" cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><circle class="unchecked" cx="12" cy="12" r="1" fill="currentColor"/><path class="check" d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ACCURACY
+    </div>
+    <div class="tl-tag" id="tl-data">
+      <svg viewBox="0 0 24 24" fill="none"><ellipse class="unchecked" cx="12" cy="6" rx="7" ry="3" stroke="currentColor" stroke-width="2"/><path class="unchecked" d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" stroke="currentColor" stroke-width="2"/><path class="unchecked" d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" stroke="currentColor" stroke-width="2"/><path class="check" d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      DATA
+    </div>
+  </div>
+
+  <!-- Beat 1: RAG pipeline -->
+  <div class="scene" id="scene-pipeline">
+    <div class="label">Stop 05 · The Conceptual Solution</div>
+    <div class="kinetic big">HOW IT WORKS</div>
+    <div class="pipeline" id="pipeline">
+      <div class="pipe-stage" data-i="0"><svg viewBox="0 0 44 44" fill="none"><circle cx="20" cy="20" r="14" stroke="#4fd1c5" stroke-width="3"/><path d="M30 30l10 10" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round"/></svg><div class="pipe-stage-label">Query</div></div>
+      <div class="pipe-arrow" data-arrow="0"></div>
+      <div class="pipe-stage" data-i="1"><svg viewBox="0 0 44 44" fill="none"><rect x="8" y="6" width="28" height="34" rx="3" stroke="#4fd1c5" stroke-width="3"/><path d="M14 16h16M14 24h16M14 32h10" stroke="#4fd1c5" stroke-width="2.5" stroke-linecap="round"/></svg><div class="pipe-stage-label">Retrieval</div></div>
+      <div class="pipe-arrow" data-arrow="1"></div>
+      <div class="pipe-stage" data-i="2"><svg viewBox="0 0 44 44" fill="none"><path d="M8 30c0-12 8-22 14-22s14 10 14 22" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round"/><circle cx="22" cy="34" r="4" fill="#4fd1c5"/></svg><div class="pipe-stage-label">Generation</div></div>
+      <div class="pipe-arrow" data-arrow="2"></div>
+      <div class="pipe-stage" data-i="3"><svg viewBox="0 0 44 44" fill="none"><path d="M14 12l-6 6 6 6M30 12l6 6-6 6" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 10l-6 24" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round"/></svg><div class="pipe-stage-label">Citation</div></div>
+    </div>
+  </div>
+
+  <!-- Beat 2: Latency + Adoption -->
+  <div class="scene" id="scene-latency">
+    <div class="label">Addressing Latency</div>
+    <div class="compare-row" id="compare-row">
+      <div class="compare-item" id="compare-manual"><div class="compare-num">5 MIN</div><div class="compare-sub">MANUAL SEARCH</div></div>
+      <div class="compare-arrow">→</div>
+      <div class="compare-item win" id="compare-ai"><div class="compare-num">3 SEC</div><div class="compare-sub">AI RESPONSE</div></div>
+    </div>
+    <div class="sub-callout" id="callout-adoption">
+      <svg viewBox="0 0 32 32" fill="none"><rect x="4" y="6" width="24" height="16" rx="2" stroke="#4fd1c5" stroke-width="2.5"/><path d="M10 26h12" stroke="#4fd1c5" stroke-width="2.5" stroke-linecap="round"/></svg>
+      DEPLOYED DIRECTLY INTO THE CRM — NEVER SWITCH SCREENS
+    </div>
+  </div>
+
+  <!-- Beat 3: Accuracy -->
+  <div class="scene" id="scene-accuracy">
+    <div class="label">Addressing Accuracy</div>
+    <div class="kinetic big">
+      <span class="mark-wrap" id="mark-citations">CITATIONS TO INTERNAL DOCUMENTS
+        <svg class="underline" viewBox="0 0 400 20" preserveAspectRatio="none"><path d="M5 12 Q 200 2 395 12" /></svg>
+      </span>
+    </div>
+  </div>
+
+  <!-- Beat 4: Cost / ROI -->
+  <div class="scene" id="scene-cost">
+    <div class="label">Addressing Cost</div>
+    <div class="equation" id="equation">
+      <div class="eq-term" data-i="0">REP HOURLY RATE</div>
+      <div class="eq-op" data-i="0">×</div>
+      <div class="eq-term" data-i="1">CALLS ON HOLD</div>
+      <div class="eq-op" data-i="1">vs.</div>
+      <div class="eq-term" data-i="2">LLM TOKEN COST</div>
+      <div class="eq-op" data-i="2">=</div>
+      <div class="eq-term eq-result" data-i="3">ROI ✓</div>
+    </div>
+  </div>
+
+  <!-- Beat 5: Security -->
+  <div class="scene" id="scene-security">
+    <div class="label">Addressing Data Security</div>
+    <div class="rings" id="rings">
+      <div class="ring ring-outer crossed" data-i="0"><div class="ring-label">PUBLIC INTERNET</div></div>
+      <div class="ring ring-mid" data-i="1"><div class="ring-label">PRIVATE CLOUD</div></div>
+      <div class="ring ring-inner" data-i="2"><div class="ring-label">ENTERPRISE DATA</div></div>
+    </div>
+  </div>
+
+  <!-- Joint 3: Map, 5/6 filled -->
+  <div class="scene" id="scene-joint3">
+    <div class="label">This Video Covers Discovery</div>
+    <div class="map-row" id="map-row">
+      <div class="map-node" data-i="0">The CTO's<br/>Question</div>
+      <div class="map-node" data-i="1">The<br/>Framework</div>
+      <div class="map-node" data-i="2">The<br/>Example</div>
+      <div class="map-node" data-i="3">Metrics &amp;<br/>Constraints</div>
+      <div class="map-node" data-i="4">The<br/>Solution</div>
+      <div class="map-node">Proving the<br/>Value</div>
+    </div>
+  </div>
+
+  <div class="player">
+    <button id="playBtn" aria-label="Play">▶</button>
+    <span id="curTime">0:00</span>
+    <div class="scrub" id="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
+    <span id="durTime">2:29</span>
+    <span class="tempo-sep"></span>
+    <label for="tempo" class="tempo-label">TEMPO</label>
+    <input type="range" id="tempo" min="0.75" max="1.5" step="0.05" value="1">
+    <span id="tempoVal">1.00x</span>
+  </div>
+
+  <audio id="audio" preload="auto">
+    <source src="clip.mp3" type="audio/mpeg">
+  </audio>
+</div>
+
+<script>
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('playBtn');
+  const scrub = document.getElementById('scrub');
+  const scrubFill = document.getElementById('scrubFill');
+  const curTime = document.getElementById('curTime');
+  const timecode = document.getElementById('timecode');
+
+  const scenes = {
+    pipeline: document.getElementById('scene-pipeline'),
+    latency: document.getElementById('scene-latency'),
+    accuracy: document.getElementById('scene-accuracy'),
+    cost: document.getElementById('scene-cost'),
+    security: document.getElementById('scene-security'),
+    joint3: document.getElementById('scene-joint3'),
+  };
+  const throughline = document.getElementById('throughline');
+  const tlCost = document.getElementById('tl-cost');
+  const tlLatency = document.getElementById('tl-latency');
+  const tlAccuracy = document.getElementById('tl-accuracy');
+  const tlData = document.getElementById('tl-data');
+
+  const pipeStages = document.querySelectorAll('.pipe-stage');
+  const pipeArrows = document.querySelectorAll('.pipe-arrow');
+  const compareManual = document.getElementById('compare-manual');
+  const compareAi = document.getElementById('compare-ai');
+  const calloutAdoption = document.getElementById('callout-adoption');
+  const markCitations = document.getElementById('mark-citations');
+  const eqTerms = document.querySelectorAll('.eq-term');
+  const eqOps = document.querySelectorAll('.eq-op');
+  const rings = document.querySelectorAll('.ring');
+  const mapNodes = document.querySelectorAll('.map-node');
+
+  const DURATION = 149;
+
+  // Real timestamps (relative to this clip's start = Stop 5's start,
+  // 237.72s into the 1.3x narration) - resolved against timestamps.json.
+  const T = {
+    pipeline: 0,
+    fiveMin: 21.42,
+    threeSec: 22.80,
+    adoption: 31.03,
+    accuracy: 50.30,
+    citations: 53.58,
+    cost: 90.50,
+    hourlyRate: 93.06,
+    roi: 103.64,
+    security: 109.39,
+    isolated: 112.77,
+    publicInternet: 129.00,
+    securePerimeter: 131.93,
+    joint3: 143.96,
+  };
+
+  function fmt(t) {
+    const m = Math.floor(t / 60);
+    const s = (t % 60).toFixed(1).padStart(4, '0');
+    return `${m}:${s}`;
+  }
+
+  function render(t) {
+    timecode.textContent = `T+${t.toFixed(1)}s`;
+    curTime.textContent = fmt(t);
+    scrubFill.style.width = `${Math.min(100, (t / DURATION) * 100)}%`;
+
+    Object.values(scenes).forEach(s => s.classList.remove('active'));
+    pipeStages.forEach(s => s.classList.remove('in'));
+    pipeArrows.forEach(a => a.classList.remove('drawn'));
+    compareManual.classList.remove('in');
+    compareAi.classList.remove('in');
+    calloutAdoption.classList.remove('show');
+    markCitations.classList.remove('drawn');
+    eqTerms.forEach(e => e.classList.remove('in'));
+    eqOps.forEach(e => e.classList.remove('in'));
+    rings.forEach(r => r.classList.remove('in'));
+    mapNodes.forEach(n => n.classList.remove('filled'));
+    tlCost.classList.remove('resolved');
+    tlLatency.classList.remove('resolved');
+    tlAccuracy.classList.remove('resolved');
+    tlData.classList.remove('resolved');
+
+    if (t < T.joint3) throughline.classList.add('show');
+    else throughline.classList.remove('show');
+
+    if (t >= T.threeSec) tlLatency.classList.add('resolved');
+    if (t >= T.citations) tlAccuracy.classList.add('resolved');
+    if (t >= T.roi) tlCost.classList.add('resolved');
+    if (t >= T.securePerimeter) tlData.classList.add('resolved');
+
+    if (t < T.fiveMin) {
+      scenes.pipeline.classList.add('active');
+      pipeStages.forEach((s, i) => { if (t > i * 3.5) s.classList.add('in'); });
+      pipeArrows.forEach((a, i) => { if (t > (i + 1) * 3.5 - 1) a.classList.add('drawn'); });
+    } else if (t < T.accuracy) {
+      scenes.latency.classList.add('active');
+      if (t > T.fiveMin) compareManual.classList.add('in');
+      if (t > T.threeSec) compareAi.classList.add('in');
+      if (t > T.adoption) calloutAdoption.classList.add('show');
+    } else if (t < T.cost) {
+      scenes.accuracy.classList.add('active');
+      if (t > T.citations) markCitations.classList.add('drawn');
+    } else if (t < T.security) {
+      scenes.cost.classList.add('active');
+      const eqDelays = [0, 0.6, 1.6, 2.2, 3.2, 3.8, 5.0];
+      eqTerms.forEach((e, i) => { if (t > T.cost + eqDelays[i * 2] ) e.classList.add('in'); });
+      eqOps.forEach((e, i) => { if (t > T.cost + eqDelays[i * 2 + 1]) e.classList.add('in'); });
+    } else if (t < T.joint3) {
+      scenes.security.classList.add('active');
+      rings.forEach((r, i) => { if (t > T.security + i * 1.8) r.classList.add('in'); });
+    } else {
+      scenes.joint3.classList.add('active');
+      mapNodes.forEach((n) => { if (n.dataset.i !== undefined) n.classList.add('filled'); });
+    }
+  }
+
+  let raf;
+  function loop() { render(audio.currentTime); raf = requestAnimationFrame(loop); }
+
+  playBtn.addEventListener('click', () => {
+    if (audio.paused) { audio.play(); playBtn.textContent = '❚❚'; raf = requestAnimationFrame(loop); }
+    else { audio.pause(); playBtn.textContent = '▶'; cancelAnimationFrame(raf); }
+  });
+  audio.addEventListener('ended', () => { playBtn.textContent = '▶'; cancelAnimationFrame(raf); });
+  scrub.addEventListener('click', (e) => {
+    const rect = scrub.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = Math.max(0, Math.min(DURATION, pct * DURATION));
+    render(audio.currentTime);
+  });
+
+  const tempo = document.getElementById('tempo');
+  const tempoVal = document.getElementById('tempoVal');
+  audio.preservesPitch = true;
+  tempo.addEventListener('input', () => {
+    const rate = parseFloat(tempo.value);
+    audio.playbackRate = rate;
+    tempoVal.textContent = `${rate.toFixed(2)}x`;
+  });
+
+  const params = new URLSearchParams(location.search);
+  const urlT = parseFloat(params.get('t'));
+  const initialT = isNaN(urlT) ? 0 : Math.max(0, Math.min(DURATION, urlT));
+  audio.currentTime = initialT;
+  render(initialT);
+</script>
+</body>
+</html>
