@@ -107,12 +107,24 @@ mean making the creative call blind, before anything's been seen rendered,
 which defeats the reason Claude Code drafts directly in the first place.
 
 **Per-chunk artifacts**:
-- A rendered `.mp4` clip for that chunk, sent for review (not just described
-  in text — see intent.md's per-chunk rendering rationale).
+- A rendered `.mp4` clip for that chunk, **with the real narration audio
+  baked in** (not silent) — a silent preview can't show whether a visual
+  beat actually lands with the spoken word it's timed to, which is the
+  entire point of aligning to real timestamps. Sent for review, not just
+  described in text (see intent.md's per-chunk rendering rationale).
 - A short **handoff-state note** appended to `projects/<name>/build-state.md`
   once the chunk is approved: exact camera position/scale, what's on screen,
   what's dim vs. lit. This is what the next chunk's starting state is taken
   from — a documented fact, not memory.
+
+**Audio in chunk renders**: Remotion's `<Audio>` component, `src`d via
+`staticFile()`, trimmed per chunk with `trimBefore`/`trimAfter` (frame
+numbers matching that chunk's real start/end in the narration — same numbers
+already used for scene timing). Remotion's bundler doesn't follow symlinks
+into `public/`, so `scripts/align.ts` keeps a **real copy** synced to
+`remotion/public/audio/<project>-narration.wav` every time alignment runs —
+re-running alignment after a re-recording keeps it current automatically,
+rather than relying on remembering a manual copy step.
 
 A chunk is a commit. If a chunk goes the wrong direction, reverting it
 doesn't touch anything before or after it.

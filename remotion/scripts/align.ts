@@ -89,6 +89,16 @@ async function main() {
   console.log(`Wrote ${outputPath}`);
 
   fs.unlinkSync(converted16k);
+
+  // Remotion's bundler doesn't follow symlinks into public/, so the audio
+  // Composition components reference is a real copy, kept in sync here -
+  // otherwise a re-recording updates narration.wav but silently leaves
+  // renders using stale audio.
+  const publicAudioDir = path.join(process.cwd(), 'public', 'audio');
+  fs.mkdirSync(publicAudioDir, {recursive: true});
+  const publicAudioPath = path.join(publicAudioDir, `${projectName}-narration.wav`);
+  fs.copyFileSync(narrationPath, publicAudioPath);
+  console.log(`Synced ${publicAudioPath}`);
 }
 
 main().catch((err) => {
