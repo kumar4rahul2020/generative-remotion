@@ -71,6 +71,13 @@ export const Chunk1: React.FC = () => {
     easing: Easing.out(Easing.cubic),
   });
 
+  // How far the narration has moved through the four phases - drives the
+  // progressive line-fill and traveling glow during the long hold.
+  const progressT = interpolate(frame, [BOXES_DRAWN_BY, PART_ONE_LINE], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   // --- Zoom into Discovery, then expand into the map ---
   const zoomT = interpolate(frame, [PART_ONE_LINE, ZOOM_END], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -83,7 +90,15 @@ export const Chunk1: React.FC = () => {
     easing: Easing.inOut(Easing.cubic),
   });
 
-  const camFull: Camera = {x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, scale: 1};
+  // Ambient breathing during the long framework hold - never truly static,
+  // fades out as the zoom into Discovery takes over.
+  const breathing = 1 + 0.012 * Math.sin(frame / 45);
+  const breathingFade = interpolate(zoomT, [0, 0.3], [1, 0], {extrapolateRight: 'clamp'});
+  const camFull: Camera = {
+    x: WORLD_WIDTH / 2,
+    y: WORLD_HEIGHT / 2,
+    scale: 1 * (1 + (breathing - 1) * breathingFade),
+  };
   const camDiscovery: Camera = {x: discoveryCenterX, y: discoveryCenterY, scale: 3.4};
   const camMap: Camera = {x: MAP_CENTER_X, y: MAP_CENTER_Y, scale: 1.15};
 
@@ -147,7 +162,11 @@ export const Chunk1: React.FC = () => {
           transformOrigin: 'top left',
         }}
       >
-        {/* Connecting line across the series phases */}
+        {/* Connecting line across the series phases: base draw-in, then a
+            progressive brighter fill + traveling glow synced to how far
+            the narration has moved through the four phases - keeps the
+            ~80s hold continuously alive instead of static between the
+            per-phase highlight pulses. */}
         <svg
           width={WORLD_WIDTH}
           height={WORLD_HEIGHT}
@@ -162,6 +181,35 @@ export const Chunk1: React.FC = () => {
             strokeWidth={3}
             strokeDasharray={1200}
             strokeDashoffset={interpolate(boxesDrawT, [0, 1], [1200, 0])}
+          />
+          <line
+            x1={seriesPhases[0].x + PHASE_BOX_W}
+            y1={PHASE_BOX_Y + PHASE_BOX_H / 2}
+            x2={seriesPhases[seriesPhases.length - 1].x}
+            y2={PHASE_BOX_Y + PHASE_BOX_H / 2}
+            stroke={colors.foreground}
+            strokeWidth={3}
+            strokeDasharray={1200}
+            strokeDashoffset={interpolate(progressT, [0, 1], [1200, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}
+            opacity={0.8}
+          />
+          <circle
+            cx={interpolate(
+              progressT,
+              [0, 1],
+              [seriesPhases[0].x + PHASE_BOX_W, seriesPhases[seriesPhases.length - 1].x],
+              {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
+            )}
+            cy={PHASE_BOX_Y + PHASE_BOX_H / 2}
+            r={7}
+            fill={colors.accent}
+            opacity={interpolate(progressT, [0, 0.02, 0.98, 1], [0, 1, 1, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}
           />
         </svg>
 
