@@ -6,6 +6,10 @@ import {
   CaptionsTempoExperiment,
   EXPERIMENT_DURATION,
 } from "./experiments/CaptionsTempoExperiment";
+import {
+  GlowMorphExperiment,
+  GLOWMORPH_DURATION,
+} from "./experiments/GlowMorphExperiment";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -24,6 +28,14 @@ export const RemotionRoot: React.FC = () => {
         id="Experiment-CaptionsTempo"
         component={CaptionsTempoExperiment}
         durationInFrames={EXPERIMENT_DURATION}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="Experiment-GlowMorph"
+        component={GlowMorphExperiment}
+        durationInFrames={GLOWMORPH_DURATION}
         fps={30}
         width={1920}
         height={1080}
