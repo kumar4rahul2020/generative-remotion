@@ -48,6 +48,18 @@ export const CaptionsTempoExperiment: React.FC = () => {
     (c) => frame >= sec(c.startMs / 1000) && frame < sec(c.endMs / 1000),
   );
 
+  // Camera "punch": a quick zoom-pulse on every caption change, so the
+  // whole frame has a fresh moment of motion at the same cadence captions
+  // already change at (~every 1-2s) - keeps the diagram from ever sitting
+  // fully still for long, without adding more text or content.
+  const punchStart = activeCaption ? sec(activeCaption.startMs / 1000) : 0;
+  const punchLocal = frame - punchStart;
+  const punchScale = interpolate(punchLocal, [0, sec(0.18)], [1.045, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
   // Tighter tempo: boxes draw in faster (0.3s stagger -> 0.1s) and start
   // right after the title, no long static hold before something moves.
   const boxesStart = sec(1);
@@ -77,7 +89,8 @@ export const CaptionsTempoExperiment: React.FC = () => {
           left: 0,
           width: WORLD_WIDTH,
           height: WORLD_HEIGHT,
-          transform: 'translate(160px, -20px) scale(1)',
+          transform: `translate(160px, -20px) scale(${punchScale})`,
+          transformOrigin: '50% 50%',
         }}
       >
         {seriesPhases.map((phase, i) => {
