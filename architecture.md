@@ -19,6 +19,10 @@ Concretely:
   environment to manage for one step.
 - Everything downstream (storyboard data, scene components, rendering) is
   TypeScript/React inside the same Remotion project.
+- **Audio via Git LFS**: `.wav` files are tracked through Git LFS, not
+  plain git. Narration gets re-recorded/updated (already happened once for
+  fde-part1), and each version is 50MB+ — plain git would keep every past
+  version as a full blob forever. LFS keeps that cost out of normal clones.
 
 ## LLM allocation: Claude Code drafts directly (no scripted API in the loop)
 
@@ -78,13 +82,40 @@ becomes Remotion code until the storyboard artifact is reviewed and approved.
 | 2. Alignment | narration audio | `timestamps.json` (word/segment-level) | `@remotion/whisper-cpp` |
 | 3. Storyboard proposal | script + timestamps + visual notes | `storyboard.md` (human-readable plan, per scene: text, visual treatment, start/end time) | Claude Code, directly |
 | 4. Review & revise | storyboard.md + my feedback | updated `storyboard.md` | Claude Code |
-| 5. Build | approved storyboard.md | Remotion composition + scene components | Claude Code, directly |
-| 6. Render & review | Remotion composition | preview `.mp4` | Remotion render |
-| 7. Final render | approved preview | final `.mp4` | Remotion render |
+| 5. Build | approved storyboard.md | Remotion composition + scene components, built in sequential chunks (see below) | Claude Code, directly |
+| 6. Render & review | Remotion composition | preview `.mp4` **per chunk** | Remotion render |
+| 7. Final render | every chunk approved | final `.mp4` | Remotion render |
 
 The storyboard is deliberately a plain document (not code) so step 4 stays
 cheap — reordering or rewording a scene in a markdown/JSON file costs nothing
 compared to reworking Remotion components.
+
+## Build stage: sequential chunks, not scene-by-scene or all-at-once
+
+Chunk boundaries are the storyboard's own map-return joints (fde-part1's
+storyboard defines 5: empty-map reveal, stops 1–3→Joint 1, stop 4→Joint 2,
+stop 5→Joint 3, stop 6→payoff→outro) — not individual scenes (too granular
+to review meaningfully) and not the whole video (loses the ability to catch
+a problem before it compounds into later chunks).
+
+**Why sequential, not parallel**: this only works sequentially. In the
+continuous-canvas model, a chunk's starting camera position/scale and which
+objects exist is *defined by* the previous chunk's actual ending state.
+Building chunks in parallel would mean guessing at that handoff before it's
+known — the alternative (freezing an exact handoff contract up front) would
+mean making the creative call blind, before anything's been seen rendered,
+which defeats the reason Claude Code drafts directly in the first place.
+
+**Per-chunk artifacts**:
+- A rendered `.mp4` clip for that chunk, sent for review (not just described
+  in text — see intent.md's per-chunk rendering rationale).
+- A short **handoff-state note** appended to `projects/<name>/build-state.md`
+  once the chunk is approved: exact camera position/scale, what's on screen,
+  what's dim vs. lit. This is what the next chunk's starting state is taken
+  from — a documented fact, not memory.
+
+A chunk is a commit. If a chunk goes the wrong direction, reverting it
+doesn't touch anything before or after it.
 
 ## Shared style layer (persistent brand)
 
@@ -103,20 +134,23 @@ than redefining it — consistent with the "no fallback aesthetic yet" decision.
 ## Reusable scene-component library
 
 Not pre-built — intent.md's decision is that the first project determines
-what's actually needed. From the script analysis so far, `fde-part1` is
-already expected to need:
+what's actually needed. Superseded once by the shift to diagram-only visuals
+(no captions/bullets, per `visual-notes.md`) and again by the map-first
+restructure — current candidates, from the approved storyboard:
 
-- **Title/intro card**
-- **Phase-breakdown diagram** (Capability → Reliability → Security →
-  Scalability progression)
-- **Quote/callout card** (the CTO's question)
-- **Bullet reveal** (business metrics, constraints, latency/cost/security/
-  adoption points)
+- **The camera/world system itself** (persistent coordinate space + animated
+  camera transform) — proven in `PhaseZoomPrototype.tsx`, this is the one
+  piece almost certain to be reused across all of parts 2–4, not just within
+  this video.
+- **Map node** (outline → filled, the recurring unit the whole video returns
+  to)
+- **Icon scene** (call/hold/PDF/clock — dramatizing a problem physically)
+- **Containment rings**, **split-panel**, **pipeline-flow**, **balance
+  scale** — one-off diagram types from Stop 5, may or may not recur in later
+  parts; not worth generalizing until they do.
 
 These get built as project-specific scenes first; only get promoted into the
-shared component library once they're proven and reused (this is a 4-part
-series, so reuse across parts 2–4 is the expected forcing function, not
-speculative).
+shared component library once they're proven and reused.
 
 ## Repository layout
 
@@ -133,15 +167,19 @@ ProjectX/
 ├── projects/
 │   └── fde-part1/
 │       ├── script.md
-│       ├── narration.wav
-│       ├── timestamps.json       # from whisper.cpp alignment (done)
+│       ├── narration.wav         # LFS-tracked (see Toolchain)
+│       ├── timestamps.json       # from whisper.cpp alignment (done, re-run after script/audio update)
 │       ├── visual-notes.md       # per-project visual expectation input (done)
-│       └── storyboard.md         # reviewable plan — the step-4 artifact (pending)
+│       ├── storyboard.md         # reviewable plan — the step-4 artifact (approved)
+│       └── build-state.md        # per-chunk handoff state, appended as each chunk is approved
+├── .gitattributes                # Git LFS: *.wav
 └── remotion/                     # single Remotion project (npm create-video scaffold)
     ├── package.json
+    ├── scripts/
+    │   └── align.ts              # whisper.cpp alignment (script + audio → timestamps.json)
     └── src/
         ├── Root.tsx              # registers compositions
-        ├── style/                # shared brand: tokens + motion primitives
+        ├── style/                # shared brand: tokens + motion primitives (tokens.ts)
         ├── components/           # shared, promoted scene components (starts empty)
         └── projects/
             └── fde-part1/        # this video's composition + project-specific scenes
@@ -156,15 +194,27 @@ library" section above), then move up to `remotion/src/components/`.
 
 ## Review checkpoints (where I'm in the loop)
 
-Matches intent.md: **after the storyboard** (step 3→4) and **after the
-rendered preview** (step 6). Everything else — running whisper.cpp,
-scaffolding Remotion components from an approved storyboard — is mechanical
-and doesn't need a checkpoint of its own.
+Matches intent.md, revised after the fde-part1 build-planning discussion:
+**after the storyboard** (step 3→4) and **after every rendered build chunk**
+(step 5→6, repeated per chunk) — not just once at the end. Running
+whisper.cpp and matching cues to timestamps stay mechanical, no checkpoint
+needed.
+
+Per-chunk review isn't extra caution, it's required by the continuous-canvas
+model: a chunk's starting state is only a known fact once the previous
+chunk's actual render has been seen, not before (see "Build stage" above).
+It also solves a separate problem — past a certain length, text descriptions
+stop being precise enough to point at what's wrong in a specific frame.
+Feedback anchors to the actual rendered clip (and specific frame numbers,
+scrubbable in Remotion Studio) instead of prose.
 
 ## Open / to validate with fde-part1
 
-- Whether `storyboard.md` as plain markdown is expressive enough, or whether
-  it needs light structure (e.g. YAML frontmatter per scene for start/end
-  time) to stay unambiguous when it's handed off to the build step.
+- ~~Whether `storyboard.md` as plain markdown is expressive enough~~ —
+  **resolved**: plain markdown with per-scene headers held up fine across
+  two full rewrites (diagram-variety pass, map-first restructure). No need
+  for YAML frontmatter or added structure.
 - Whether one Remotion project is the right shape once there are 4 parts, or
   whether each part deserves more isolation.
+- Whether the chunked-build/`build-state.md` approach (new, untested) is the
+  right grain — will only really know after the first chunk or two.

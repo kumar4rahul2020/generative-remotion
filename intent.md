@@ -60,17 +60,29 @@ from me upfront.
 3. **Review & revise** — I give feedback on the storyboard (reorder, cut,
    change tone, change emphasis). Claude updates the plan. Repeat until the
    plan feels right. No Remotion code is written before this is approved.
-4. **Build** — Claude implements the approved storyboard as a Remotion
-   project (compositions/scenes, animations, timing).
-5. **Render & review** — Render a preview. I review the actual video, not
-   just the plan — motion and timing read differently on screen than on
-   paper. Feedback here can mean adjusting the storyboard (back to step 3) or
-   just tweaking implementation (stay in step 4), depending on what's off.
-6. **Final render** — Once approved, render the final output.
+4. **Build, in sequential chunks** — Claude implements the approved
+   storyboard as a Remotion project, one chunk at a time (chunk boundaries
+   are the storyboard's own joints/map-return points, not arbitrary). Each
+   chunk is rendered to an actual clip and shown to me before the next chunk
+   starts.
+5. **Render & review, per chunk** — I watch the actual rendered clip, not
+   just a text description — motion and timing read differently on screen
+   than on paper, and as the video grows, prose descriptions stop being a
+   precise enough way to point at what's off. Feedback can mean adjusting
+   the storyboard (back to step 3) or tweaking the chunk just built (stay in
+   step 4). Only once a chunk is approved does the next one start, since
+   each chunk's starting camera/object state is a direct fact taken from
+   how the previous chunk actually ended, not a guess.
+6. **Final render** — Once every chunk is approved, render the final output.
 
-Checkpoints exist at the storyboard stage and after a rendered preview,
-because those are the two points where intent and execution are most likely
-to have drifted apart — not because every step needs sign-off.
+Checkpoints exist at the storyboard stage and after every rendered chunk.
+For the storyboard, it's because intent and execution are most likely to
+have drifted apart there. For per-chunk rendering, it's structural, not
+just caution: this tool builds one continuous canvas (objects persist and
+transform across scene boundaries, per architecture.md), so a later chunk's
+starting state is only known once the previous chunk has actually been seen
+rendered — building ahead of that would mean guessing at a handoff instead
+of using a fact.
 
 ## Visual style / brand
 
