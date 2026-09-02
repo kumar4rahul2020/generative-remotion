@@ -134,6 +134,21 @@
   }
   .map-node.filled { border-color: var(--teal); color: var(--ink); }
 
+  /* Stop 4: two-column metrics/constraints */
+  .two-col { display: flex; gap: 60px; align-items: flex-start; }
+  .col-divider { width: 1px; align-self: stretch; background: var(--line); }
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 260px; }
+  .col-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 6px;
+  }
+  .col-item {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 22px; color: var(--ink);
+    opacity: 0; transform: translateX(-14px); transition: opacity 0.35s ease, transform 0.35s ease;
+    padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .col-item.in { opacity: 1; transform: translateX(0); }
+
   .node-progress {
     position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 10px; z-index: 10;
@@ -247,14 +262,54 @@
     </div>
   </div>
 
-  <!-- Joint 1: Map, 3/6 filled -->
+  <!-- Joint 1: Map, 3/6 filled - a BRIEF internal beat now, not the
+       chunk's end. Chunk originally cut here, but that left the JTBD
+       framework unresolved (fears shown, never answered) - extended
+       through Stop 4 so this chunk completes an actual argument. -->
   <div class="scene" id="scene-joint1">
     <div class="label">This Video Covers Discovery</div>
-    <div class="map-row" id="map-row">
+    <div class="map-row" id="map-row-1">
       <div class="map-node" data-i="0">The CTO's<br/>Question</div>
       <div class="map-node" data-i="1">The<br/>Framework</div>
       <div class="map-node" data-i="2">The<br/>Example</div>
       <div class="map-node">Metrics &amp;<br/>Constraints</div>
+      <div class="map-node">The<br/>Solution</div>
+      <div class="map-node">Proving the<br/>Value</div>
+    </div>
+  </div>
+
+  <!-- Stop 4: Business Metrics & Constraints - the framework's actual
+       payoff. Two columns, each filling as its items are named. -->
+  <div class="scene" id="scene-metrics">
+    <div class="label">Stop 04 · Applying the Framework</div>
+    <div class="kinetic big" style="margin-bottom: 30px;">TWO CRUCIAL THINGS</div>
+    <div class="two-col">
+      <div class="col">
+        <div class="col-label">Business Metrics</div>
+        <div class="col-item" data-i="0">Handle Time</div>
+        <div class="col-item" data-i="1">Close Rate</div>
+        <div class="col-item" data-i="2">Daily Active Usage</div>
+      </div>
+      <div class="col-divider"></div>
+      <div class="col">
+        <div class="col-label">Operational Constraints</div>
+        <div class="col-item" data-i="0">Correct Answers</div>
+        <div class="col-item" data-i="1">Returns Instantly</div>
+        <div class="col-item" data-i="2">Protects Data</div>
+        <div class="col-item" data-i="3">Seamless Integration</div>
+        <div class="col-item" data-i="4">Cost-Neutral</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Joint 2: Map, 4/6 filled - the actual end of this chunk now. -->
+  <div class="scene" id="scene-joint2">
+    <div class="label">This Video Covers Discovery</div>
+    <div class="map-row" id="map-row-2">
+      <div class="map-node" data-i="0">The CTO's<br/>Question</div>
+      <div class="map-node" data-i="1">The<br/>Framework</div>
+      <div class="map-node" data-i="2">The<br/>Example</div>
+      <div class="map-node" data-i="3">Metrics &amp;<br/>Constraints</div>
       <div class="map-node">The<br/>Solution</div>
       <div class="map-node">Proving the<br/>Value</div>
     </div>
@@ -276,7 +331,7 @@
     <button id="playBtn" aria-label="Play">▶</button>
     <span id="curTime">0:00</span>
     <div class="scrub" id="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
-    <span id="durTime">2:08</span>
+    <span id="durTime">2:47</span>
     <span class="tempo-sep"></span>
     <label for="tempo" class="tempo-label">TEMPO</label>
     <input type="range" id="tempo" min="0.75" max="1.5" step="0.05" value="1">
@@ -301,22 +356,28 @@
     framework: document.getElementById('scene-framework'),
     example: document.getElementById('scene-example'),
     joint1: document.getElementById('scene-joint1'),
+    metrics: document.getElementById('scene-metrics'),
+    joint2: document.getElementById('scene-joint2'),
   };
   const tags = document.querySelectorAll('.tag');
   const triadItems = document.querySelectorAll('.triad-item');
   const calloutDoubt = document.getElementById('callout-doubt');
   const markDoubt = document.getElementById('mark-doubt');
   const fearTags = document.querySelectorAll('.fear-tag');
-  const mapNodes = document.querySelectorAll('.map-node');
+  const mapNodes1 = document.querySelectorAll('#map-row-1 .map-node');
+  const mapNodes2 = document.querySelectorAll('#map-row-2 .map-node');
+  const colItems = document.querySelectorAll('.col-item');
   const triadLineFill = document.getElementById('triadLineFill');
   const nodeProgress = document.getElementById('nodeProgress');
   const ndots = document.querySelectorAll('.ndot');
 
-  const DURATION = 128.5;
+  const DURATION = 166.5;
 
   // Real timestamps (already relative to clip start = 73.74s into the
   // 1.3x narration, matching where Chunk 1 ends) - resolved against
   // timestamps.json, same anchors storyboard.md uses, divided by 1.3.
+  // Extended through Stop 4 / Joint 2 - the original cut at Joint 1 left
+  // the JTBD framework unresolved (fears shown, never answered).
   const T = {
     question: 0,
     factorTags: 19.96,
@@ -330,8 +391,21 @@
     fearsStart: 88.86,
     fearsDetail: 98.58,
     joint1: 124.04,
+    metrics: 128.74,
+    handleTime: 131.18,
+    closeRate: 133.07,
+    dau: 134.89,
+    constraintsIntro: 138.64,
+    correctAnswers: 146.45,
+    returnsInstantly: 148.28,
+    protectsData: 149.75,
+    seamlessIntegration: 151.36,
+    costNeutral: 158.46,
+    joint2: 161.91,
   };
   const FEAR_STAGGER = 3.2;
+  const leftColTimes = [T.handleTime, T.closeRate, T.dau];
+  const rightColTimes = [T.correctAnswers, T.returnsInstantly, T.protectsData, T.seamlessIntegration, T.costNeutral];
 
   function fmt(t) {
     const m = Math.floor(t / 60);
@@ -350,7 +424,9 @@
     calloutDoubt.classList.remove('show');
     markDoubt.classList.remove('drawn');
     fearTags.forEach(f => f.classList.remove('in'));
-    mapNodes.forEach(n => n.classList.remove('filled'));
+    mapNodes1.forEach(n => n.classList.remove('filled'));
+    mapNodes2.forEach(n => n.classList.remove('filled'));
+    colItems.forEach(it => it.classList.remove('in'));
     nodeProgress.classList.remove('show');
     ndots.forEach(d => d.classList.remove('active', 'done'));
 
@@ -374,11 +450,19 @@
       }
       fearTags.forEach((f, i) => { if (t > T.fearsStart + i * FEAR_STAGGER) f.classList.add('in'); });
       setNodeProgress(2);
-    } else {
+    } else if (t < T.metrics) {
       scenes.joint1.classList.add('active');
-      mapNodes.forEach((n) => {
-        if (n.dataset.i !== undefined) n.classList.add('filled');
-      });
+      mapNodes1.forEach((n) => { if (n.dataset.i !== undefined) n.classList.add('filled'); });
+    } else if (t < T.joint2) {
+      scenes.metrics.classList.add('active');
+      const leftItems = document.querySelectorAll('.col:nth-child(1) .col-item');
+      const rightItems = document.querySelectorAll('.col:nth-child(3) .col-item');
+      leftItems.forEach((it, i) => { if (t > leftColTimes[i]) it.classList.add('in'); });
+      rightItems.forEach((it, i) => { if (t > rightColTimes[i]) it.classList.add('in'); });
+      setNodeProgress(3);
+    } else {
+      scenes.joint2.classList.add('active');
+      mapNodes2.forEach((n) => { if (n.dataset.i !== undefined) n.classList.add('filled'); });
     }
   }
 

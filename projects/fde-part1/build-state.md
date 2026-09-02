@@ -4,12 +4,20 @@ Appended to after each build chunk is approved (per architecture.md's
 "Build stage: sequential chunks"). Each entry is the **documented fact**
 the next chunk's starting state is taken from — not memory, not assumption.
 
-Chunk plan (from storyboard.md's joints):
+Chunk plan (revised — originally cut at every map joint, per
+storyboard.md; **Chunk 2 revised** to include Stop 4 after review showed
+cutting at Joint 1 left the JTBD framework unresolved — question and
+fears shown, but never the framework's actual output. Map joints are a
+*visual* pacing structure, not guaranteed to align with where an argument
+actually resolves; check this for each remaining chunk too, don't assume
+joint = complete thought):
 1. Title → series framework → empty map reveal
-2. Stops 1–3 → Joint 1 (map, 3/6 filled)
-3. Stop 4 → Joint 2 (map, 4/6 filled)
-4. Stop 5 → Joint 3 (map, 5/6 filled)
-5. Stop 6 → payoff → closing → outro
+2. Stops 1–4 → Joint 2 (map, 4/6 filled) — **extended from the original
+   Stops 1–3 → Joint 1** so the chunk completes an actual argument
+   (question → framework → example → derived metrics/constraints),
+   not just setup + unresolved tension
+3. Stop 5 → Joint 3 (map, 5/6 filled)
+4. Stop 6 → payoff → closing → outro
 
 ---
 

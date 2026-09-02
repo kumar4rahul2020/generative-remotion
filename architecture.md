@@ -92,11 +92,17 @@ compared to reworking Remotion components.
 
 ## Build stage: sequential chunks, not scene-by-scene or all-at-once
 
-Chunk boundaries are the storyboard's own map-return joints (fde-part1's
-storyboard defines 5: empty-map reveal, stops 1–3→Joint 1, stop 4→Joint 2,
+Chunk boundaries start from the storyboard's map-return joints (fde-part1's
+storyboard defines: empty-map reveal, stops 1–3→Joint 1, stop 4→Joint 2,
 stop 5→Joint 3, stop 6→payoff→outro) — not individual scenes (too granular
 to review meaningfully) and not the whole video (loses the ability to catch
-a problem before it compounds into later chunks).
+a problem before it compounds into later chunks). **But a map joint is a
+visual pacing point, not guaranteed to be where an argument resolves** —
+Chunk 2 was caught ending mid-argument at Joint 1 (a framework introduced
+and applied, but never shown paying off) and had to be extended through
+Stop 4/Joint 2 to actually complete a thought. Check each chunk's semantic
+completeness explicitly before treating a joint as its boundary — see
+`build-state.md`'s chunk plan for the concrete adjustment.
 
 **Why sequential, not parallel**: this only works sequentially. In the
 continuous-canvas model, a chunk's starting camera position/scale and which
