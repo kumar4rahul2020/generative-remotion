@@ -1,25 +1,24 @@
-import {AbsoluteFill, Audio, staticFile, useCurrentFrame, useVideoConfig, interpolate, Easing} from 'remotion';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Easing} from 'remotion';
 import {loadFont as loadArchivoBlack} from '@remotion/google-fonts/ArchivoBlack';
 import {loadFont as loadPlexSans} from '@remotion/google-fonts/IBMPlexSans';
 import {loadFont as loadPlexMono} from '@remotion/google-fonts/IBMPlexMono';
 import {colors, fonts} from '../../style/tokens';
 import {seriesPhases, mapNodes} from './world';
+import {sec, fadeInOut, Ruler, Label, Kinetic, Mark} from './shared';
 
 // Chunk 1, Vox-style (locked - see build-state.md and visual-notes.md).
 // Ported from the validated HTML prototype
 // (remotion/prototypes/fde-part1-vox-preview/index.html) - same
 // state-as-a-function-of-time logic, translated from `audio.currentTime`
-// to `useCurrentFrame()`. Supersedes the earlier diagram/camera-based
-// Chunk1 - this version doesn't use world.ts's camera system at all, only
-// its seriesPhases/mapNodes label data.
+// to `useCurrentFrame()`. Doesn't use world.ts's camera system at all,
+// only its seriesPhases/mapNodes label data.
+//
+// Audio lives at the master-composition level (FdePart1.tsx), not per
+// chunk - see that file for why.
 
 loadArchivoBlack();
 loadPlexSans();
 loadPlexMono();
-
-const FPS = 30;
-const TEMPO = 1.3; // narration plays 30% faster, pitch-corrected - see architecture.md "Tempo"
-const sec = (s: number) => Math.round((s / TEMPO) * FPS);
 
 // Real (pre-tempo) timestamps, resolved against timestamps.json - same
 // anchors as the prototype and storyboard.md.
@@ -111,8 +110,6 @@ export const Chunk1: React.FC = () => {
 
   return (
     <AbsoluteFill style={{backgroundColor: colors.background}}>
-      <Audio src={staticFile('audio/fde-part1-narration-1.3x.wav')} trimAfter={CHUNK1_DURATION} />
-
       <Ruler frame={frame} />
 
       {frame < T.framework && <TitleScene frame={frame} />}
@@ -142,47 +139,6 @@ export const Chunk1: React.FC = () => {
     </AbsoluteFill>
   );
 };
-
-const Ruler: React.FC<{frame: number}> = ({frame}) => {
-  const pulse = 0.65 + 0.35 * Math.abs(Math.sin(frame / 21));
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '20px 32px',
-        fontFamily: fonts.mono,
-        fontSize: 13,
-        letterSpacing: '0.08em',
-        color: colors.dim,
-        borderBottom: `1px solid rgba(255,255,255,0.1)`,
-      }}
-    >
-      <span
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          background: colors.mark,
-          display: 'inline-block',
-          marginRight: 8,
-          opacity: pulse,
-        }}
-      />
-      FDE INTERVIEW SERIES — PART 01
-    </div>
-  );
-};
-
-const fadeInOut = (frame: number, start: number, end: number, inDur = sec(0.6), outDur = sec(0.8)) =>
-  interpolate(frame, [start, start + inDur, end - outDur, end], [0, 1, 1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
 
 const TitleScene: React.FC<{frame: number}> = ({frame}) => {
   const opacity = fadeInOut(frame, 0, T.framework);
@@ -338,6 +294,9 @@ const ZoomScene: React.FC<{frame: number; width: number}> = ({frame}) => {
   );
 };
 
+// This chunk's map ending has its own one-time reveal animation (nodes
+// growing in from nothing) - everywhere else in the video the map already
+// exists and MapRow (shared.tsx) just updates which nodes are filled.
 const MapScene: React.FC<{frame: number}> = ({frame}) => {
   const opacity = interpolate(frame, [T.mapReveal, T.mapReveal + sec(0.3)], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -378,67 +337,5 @@ const MapScene: React.FC<{frame: number}> = ({frame}) => {
         })}
       </div>
     </AbsoluteFill>
-  );
-};
-
-const Label: React.FC<{children: React.ReactNode}> = ({children}) => (
-  <div
-    style={{
-      fontFamily: fonts.mono,
-      fontSize: 15,
-      letterSpacing: '0.14em',
-      textTransform: 'uppercase',
-      color: colors.accent,
-      marginBottom: 18,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const Kinetic: React.FC<{size: 'huge' | 'big'; children: React.ReactNode}> = ({size, children}) => (
-  <div
-    style={{
-      fontFamily: fonts.display,
-      textAlign: 'center',
-      lineHeight: 0.98,
-      letterSpacing: '-0.01em',
-      color: colors.foreground,
-      fontSize: size === 'huge' ? 120 : 72,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const Mark: React.FC<{frame: number; startFrame: number; children: React.ReactNode}> = ({
-  frame,
-  startFrame,
-  children,
-}) => {
-  const t = interpolate(frame, [startFrame, startFrame + sec(0.5)], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: Easing.out(Easing.cubic),
-  });
-  return (
-    <span style={{position: 'relative', display: 'inline-block'}}>
-      {children}
-      <svg
-        viewBox="0 0 400 20"
-        preserveAspectRatio="none"
-        style={{position: 'absolute', left: '-2%', right: '-2%', bottom: '-0.12em', width: '104%', height: '0.22em', overflow: 'visible'}}
-      >
-        <path
-          d="M5 12 Q 200 2 395 12"
-          fill="none"
-          stroke={colors.mark}
-          strokeWidth={10}
-          strokeLinecap="round"
-          strokeDasharray={600}
-          strokeDashoffset={600 - t * 600}
-        />
-      </svg>
-    </span>
   );
 };

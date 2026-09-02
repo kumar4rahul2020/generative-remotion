@@ -176,6 +176,47 @@ no completeness risk to check (unlike Chunks 2 and 3).
 
 **End state**: none needed — this is the end of fde-part1.
 
-**Not yet done**: port Chunks 2, 3, and 4 into Remotion (currently only
-Chunk 1 is built in the real pipeline). Once ported, render the full
-video end-to-end for final review.
+## Stitched: all four chunks ported and combined — DONE
+
+`remotion/src/projects/fde-part1/FdePart1.tsx` renders the complete
+video: `Chunk1`–`Chunk4` ported into Remotion (faithful translations of
+each prototype, same `state = f(frame)` logic) and combined via
+`<Sequence>`, with one continuous `<Audio>` for the whole video instead
+of each chunk's own trimmed clip.
+
+**Extracted `shared.tsx`** once real reuse showed up across all four
+chunks (not speculatively): `Ruler`, `Label`, `Kinetic`, `Mark`,
+`DotProgress`, `MapRow`, `fadeInOut`, and the `sec`/`spedSec` frame-math
+helpers.
+
+**A real bug found and fixed while stitching**: Chunk 1's timestamps
+come from the *original* (untempo'd) transcript and correctly need
+`sec()` (divide by 1.3, convert to frames). But Chunks 2–4's prototypes
+were built by dividing real timestamps by 1.3 *already*, so their T
+values are in sped-time — applying `sec()` to those double-compressed
+them, running those three chunks ~30% too fast. Fixed by adding a
+separate `spedSec()` (seconds × FPS, no division) and using it
+throughout Chunks 2–4.
+
+**A second, structural sync bug**, found by verifying actual rendered
+frames against expected content rather than trusting the math alone:
+every chunk ends with a deliberate hold (sitting on the map before
+cutting) that nothing is spoken during. Positioning each chunk by
+summing the *previous* chunks' own durations compounds that hold time
+chunk after chunk — by Chunk 4 the visuals would run several seconds
+behind the audio. Fixed in `FdePart1.tsx` by anchoring each chunk's
+`<Sequence from>` to its real absolute position in the narration
+(resolved from `timestamps.json`, same anchors as everywhere else) and
+capping its `durationInFrames` at the *next* chunk's real start — a
+chunk's own trailing hold simply gets truncated when the next chunk's
+content actually begins, which is correct.
+
+**Verified**: rendered `FdePart1` end to end (13,450 frames / 448.4s,
+matching the true narration length almost exactly), confirmed a real
+speech waveform throughout (not silence), and checked every chunk
+boundary via extracted frames — no gaps, no overlaps, no duplicated
+holds.
+
+**Not yet done**: nothing for fde-part1's build — this is the first
+complete render of the whole video. Next would be a full watch-through
+review (not just spot-checked frames) before calling it final.
