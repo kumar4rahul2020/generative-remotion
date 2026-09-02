@@ -1,349 +1,256 @@
 import {AbsoluteFill, Audio, staticFile, useCurrentFrame, useVideoConfig, interpolate, Easing} from 'remotion';
+import {loadFont as loadArchivoBlack} from '@remotion/google-fonts/ArchivoBlack';
+import {loadFont as loadPlexSans} from '@remotion/google-fonts/IBMPlexSans';
+import {loadFont as loadPlexMono} from '@remotion/google-fonts/IBMPlexMono';
 import {colors, fonts} from '../../style/tokens';
-import {
-  WORLD_WIDTH,
-  WORLD_HEIGHT,
-  seriesPhases,
-  discoveryCenterX,
-  discoveryCenterY,
-  PHASE_BOX_Y,
-  PHASE_BOX_W,
-  PHASE_BOX_H,
-  MAP_CENTER_X,
-  MAP_CENTER_Y,
-  mapNodes,
-  mapNodeX,
-  mapNodeY,
-  MAP_NODE_W,
-  MAP_NODE_H,
-  cameraTransform,
-  type Camera,
-} from './world';
+import {seriesPhases, mapNodes} from './world';
 
-// Chunk 1 (storyboard.md Scenes 1-3): title -> series framework
-// establishing shot, with a highlight walk synced to each phase actually
-// being named in the narration -> zoom into Discovery -> expand into the
-// empty 6-stop map. Ends on the map fully revealed, empty - the exact
-// starting fact Chunk 2 continues from (see build-state.md).
+// Chunk 1, Vox-style (locked - see build-state.md and visual-notes.md).
+// Ported from the validated HTML prototype
+// (remotion/prototypes/fde-part1-vox-preview/index.html) - same
+// state-as-a-function-of-time logic, translated from `audio.currentTime`
+// to `useCurrentFrame()`. Supersedes the earlier diagram/camera-based
+// Chunk1 - this version doesn't use world.ts's camera system at all, only
+// its seriesPhases/mapNodes label data.
+
+loadArchivoBlack();
+loadPlexSans();
+loadPlexMono();
 
 const FPS = 30;
-const sec = (s: number) => Math.round(s * FPS);
+const TEMPO = 1.3; // narration plays 30% faster, pitch-corrected - see architecture.md "Tempo"
+const sec = (s: number) => Math.round((s / TEMPO) * FPS);
 
-// Real timestamps resolved against timestamps.json (see storyboard.md).
-const TITLE_START = sec(0.05);
-const FRAMEWORK_START = sec(9.22);
-const BOXES_DRAWN_BY = FRAMEWORK_START + sec(2);
-const DISCOVERY_NAMED = sec(28.9);
-const CAP_REL_NAMED = sec(51.4);
-const SECURITY_NAMED = sec(67.18);
-const PRODUCTION_NAMED = sec(80.88);
-const PART_ONE_LINE = sec(88.9);
-const MAP_REVEAL_END = sec(95.86);
+// Real (pre-tempo) timestamps, resolved against timestamps.json - same
+// anchors as the prototype and storyboard.md.
+const T = {
+  framework: sec(9.22),
+  phasesOverview: sec(13.2),
+  discovery: sec(28.06),
+  discoveryMark: sec(33.52),
+  goldenMark: sec(44.47),
+  capRel: sec(51.4),
+  edgeCasesMark: sec(63.11),
+  security: sec(65.7),
+  perimeterMark: sec(75.14),
+  production: sec(80.88),
+  prototypeMark: sec(86.3),
+  partOne: sec(88.9),
+  zoomPunch: sec(90.5),
+  mapReveal: sec(92.2),
+  end: sec(95.9),
+};
 
-const ZOOM_END = PART_ONE_LINE + sec(2.1);
-const EXPAND_END = ZOOM_END + sec(3);
-// MAP_REVEAL_END is the hold after expand - total chunk length.
-export const CHUNK1_DURATION = MAP_REVEAL_END;
+export const CHUNK1_DURATION = T.end;
 
-const highlightWindows: Record<string, [number, number]> = {
-  discovery: [DISCOVERY_NAMED, CAP_REL_NAMED],
-  capabilityReliability: [CAP_REL_NAMED, SECURITY_NAMED],
-  security: [SECURITY_NAMED, PRODUCTION_NAMED],
-  production: [PRODUCTION_NAMED, PART_ONE_LINE],
+const phaseIcons: Record<string, React.ReactNode> = {
+  discovery: (
+    <svg viewBox="0 0 64 64" fill="none">
+      <circle cx="27" cy="27" r="16" stroke={colors.accent} strokeWidth="3" />
+      <path d="M39 39l14 14" stroke={colors.accent} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  ),
+  capabilityReliability: (
+    <svg viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="9" stroke={colors.accent} strokeWidth="3" />
+      <path
+        d="M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6"
+        stroke={colors.accent}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  ),
+  security: (
+    <svg viewBox="0 0 64 64" fill="none">
+      <path
+        d="M32 6l22 8v16c0 16-10 26-22 30C20 56 10 46 10 30V14z"
+        stroke={colors.accent}
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path d="M24 32l6 6 12-12" stroke={colors.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  production: (
+    <svg viewBox="0 0 64 64" fill="none">
+      <path
+        d="M32 6c8 6 12 16 12 26 0 8-4 14-12 20-8-6-12-12-12-20 0-10 4-20 12-26z"
+        stroke={colors.accent}
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <circle cx="32" cy="28" r="5" stroke={colors.accent} strokeWidth="3" />
+      <path d="M24 46l-6 12M40 46l6 12" stroke={colors.accent} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  ),
+};
+
+const phaseCallouts: Record<string, {mark: string; text: string; second?: {mark: string; text: string; at: number}}> = {
+  discovery: {
+    mark: 'discovery',
+    text: 'BUSINESS METRICS & OPERATIONAL CONSTRAINTS',
+    second: {mark: 'golden', text: 'GOLDEN QUESTION-ANSWER PAIRS', at: T.goldenMark},
+  },
+  capabilityReliability: {mark: 'edgecases', text: 'WORKS FOR ALL THE EDGE CASES'},
+  security: {mark: 'perimeter', text: 'SECURE PERIMETER'},
+  production: {mark: 'prototype', text: 'PROTOTYPE → PRODUCTION'},
+};
+
+const phaseWindows: Record<string, [number, number, number]> = {
+  // [start, end, markAt]
+  discovery: [T.discovery, T.capRel, T.discoveryMark],
+  capabilityReliability: [T.capRel, T.security, T.edgeCasesMark],
+  security: [T.security, T.production, T.perimeterMark],
+  production: [T.production, T.partOne, T.prototypeMark],
 };
 
 export const Chunk1: React.FC = () => {
   const frame = useCurrentFrame();
-  const {width, height} = useVideoConfig();
-
-  // --- Title ---
-  const titleOpacity = interpolate(
-    frame,
-    [TITLE_START, TITLE_START + sec(0.6), FRAMEWORK_START - sec(0.8), FRAMEWORK_START],
-    [0, 1, 1, 0],
-    {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
-  );
-
-  // --- Series framework boxes draw in ---
-  const boxesDrawT = interpolate(frame, [FRAMEWORK_START, BOXES_DRAWN_BY], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: Easing.out(Easing.cubic),
-  });
-
-  // How far the narration has moved through the four phases - drives the
-  // progressive line-fill and traveling glow during the long hold.
-  const progressT = interpolate(frame, [BOXES_DRAWN_BY, PART_ONE_LINE], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
-  // --- Zoom into Discovery, then expand into the map ---
-  const zoomT = interpolate(frame, [PART_ONE_LINE, ZOOM_END], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: Easing.inOut(Easing.cubic),
-  });
-  const expandT = interpolate(frame, [ZOOM_END, EXPAND_END], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: Easing.inOut(Easing.cubic),
-  });
-
-  // Ambient breathing during the long framework hold - never truly static,
-  // fades out as the zoom into Discovery takes over.
-  const breathing = 1 + 0.012 * Math.sin(frame / 45);
-  const breathingFade = interpolate(zoomT, [0, 0.3], [1, 0], {extrapolateRight: 'clamp'});
-  const camFull: Camera = {
-    x: WORLD_WIDTH / 2,
-    y: WORLD_HEIGHT / 2,
-    scale: 1 * (1 + (breathing - 1) * breathingFade),
-  };
-  const camDiscovery: Camera = {x: discoveryCenterX, y: discoveryCenterY, scale: 3.4};
-  const camMap: Camera = {x: MAP_CENTER_X, y: MAP_CENTER_Y, scale: 1.15};
-
-  const camAfterZoom: Camera = {
-    x: interpolate(zoomT, [0, 1], [camFull.x, camDiscovery.x]),
-    y: interpolate(zoomT, [0, 1], [camFull.y, camDiscovery.y]),
-    scale: interpolate(zoomT, [0, 1], [camFull.scale, camDiscovery.scale]),
-  };
-  const cam: Camera = {
-    x: interpolate(expandT, [0, 1], [camAfterZoom.x, camMap.x]),
-    y: interpolate(expandT, [0, 1], [camAfterZoom.y, camMap.y]),
-    scale: interpolate(expandT, [0, 1], [camAfterZoom.scale, camMap.scale]),
-  };
-
-  const worldTransform = cameraTransform(cam, width, height);
-
-  // Non-discovery boxes fade as the camera leaves them behind.
-  const otherPhasesOpacity = interpolate(zoomT, [0, 0.6, 1], [1, 0.25, 0]);
-  // The discovery box itself fades out as it becomes the map (expand phase).
-  const discoveryBoxOpacity = interpolate(expandT, [0, 0.4], [1, 0], {
-    extrapolateRight: 'clamp',
-  });
-  const mapLineOpacity = interpolate(expandT, [0.3, 1], [0, 1], {extrapolateLeft: 'clamp'});
+  const {width} = useVideoConfig();
 
   return (
     <AbsoluteFill style={{backgroundColor: colors.background}}>
-      {/* Narration. Chunk 1 starts at absolute 0 in narration.wav, so no
-          trimBefore is needed - trimAfter caps it at this chunk's end. */}
-      <Audio src={staticFile('audio/fde-part1-narration.wav')} trimAfter={CHUNK1_DURATION} />
+      <Audio src={staticFile('audio/fde-part1-narration-1.3x.wav')} trimAfter={CHUNK1_DURATION} />
 
-      {/* Title */}
-      <AbsoluteFill
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: titleOpacity,
-        }}
-      >
-        <span
-          style={{
-            color: colors.foreground,
-            fontFamily: fonts.family,
-            fontSize: 54,
-            fontWeight: 700,
-            textAlign: 'center',
-          }}
-        >
-          Google FDE Interview Experience
-        </span>
-      </AbsoluteFill>
+      <Ruler frame={frame} />
 
-      {/* World */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: WORLD_WIDTH,
-          height: WORLD_HEIGHT,
-          transform: worldTransform,
-          transformOrigin: 'top left',
-        }}
-      >
-        {/* Connecting line across the series phases: base draw-in, then a
-            progressive brighter fill + traveling glow synced to how far
-            the narration has moved through the four phases - keeps the
-            ~80s hold continuously alive instead of static between the
-            per-phase highlight pulses. */}
-        <svg
-          width={WORLD_WIDTH}
-          height={WORLD_HEIGHT}
-          style={{position: 'absolute', top: 0, left: 0, opacity: otherPhasesOpacity}}
-        >
-          <line
-            x1={seriesPhases[0].x + PHASE_BOX_W}
-            y1={PHASE_BOX_Y + PHASE_BOX_H / 2}
-            x2={seriesPhases[seriesPhases.length - 1].x}
-            y2={PHASE_BOX_Y + PHASE_BOX_H / 2}
-            stroke={colors.dim}
-            strokeWidth={3}
-            strokeDasharray={1200}
-            strokeDashoffset={interpolate(boxesDrawT, [0, 1], [1200, 0])}
-          />
-          <line
-            x1={seriesPhases[0].x + PHASE_BOX_W}
-            y1={PHASE_BOX_Y + PHASE_BOX_H / 2}
-            x2={seriesPhases[seriesPhases.length - 1].x}
-            y2={PHASE_BOX_Y + PHASE_BOX_H / 2}
-            stroke={colors.foreground}
-            strokeWidth={3}
-            strokeDasharray={1200}
-            strokeDashoffset={interpolate(progressT, [0, 1], [1200, 0], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            })}
-            opacity={0.8}
-          />
-          <circle
-            cx={interpolate(
-              progressT,
-              [0, 1],
-              [seriesPhases[0].x + PHASE_BOX_W, seriesPhases[seriesPhases.length - 1].x],
-              {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
-            )}
-            cy={PHASE_BOX_Y + PHASE_BOX_H / 2}
-            r={7}
-            fill={colors.accent}
-            opacity={interpolate(progressT, [0, 0.02, 0.98, 1], [0, 1, 1, 0], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            })}
-          />
-        </svg>
+      {frame < T.framework && <TitleScene frame={frame} />}
+      {frame >= T.framework && frame < T.phasesOverview && <HindsightScene frame={frame} />}
+      {frame >= T.phasesOverview && frame < T.discovery && <PhasesOverviewScene frame={frame} />}
 
-        {seriesPhases.map((phase, i) => {
-          const isDiscovery = phase.id === 'discovery';
-          const boxDelay = i * sec(0.15);
-          const drawIn = interpolate(
-            frame,
-            [FRAMEWORK_START + boxDelay, FRAMEWORK_START + boxDelay + sec(0.5)],
-            [0, 1],
-            {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.out(Easing.back(1.4))},
-          );
-
-          const window = highlightWindows[phase.id];
-          const highlightT = window
-            ? interpolate(frame, [window[0], window[0] + sec(0.4), window[1] - sec(0.4), window[1]], [0, 1, 1, 0], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              })
-            : 0;
-
-          // Discovery permanently takes the accent once we commit to
-          // zooming into it (from PART_ONE_LINE onward) - before that, its
-          // highlight beat is the same neutral brighten every phase gets.
-          const discoveryCommitted = interpolate(frame, [PART_ONE_LINE, PART_ONE_LINE + sec(0.4)], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-
-          const borderColor = isDiscovery
-            ? lerp3(colors.dim, colors.foreground, colors.accent, Math.max(highlightT, discoveryCommitted))
-            : lerp3(colors.dim, colors.foreground, colors.dim, highlightT);
-
-          const opacity = drawIn * (isDiscovery ? discoveryBoxOpacity : otherPhasesOpacity);
-          const scale = drawIn * interpolate(highlightT, [0, 1], [1, 1.06]);
-
+      {seriesPhases
+        .filter((p) => phaseWindows[p.id])
+        .map((p) => {
+          const [start, end, markAt] = phaseWindows[p.id];
+          if (frame < start || frame >= end) return null;
           return (
-            <div
-              key={phase.id}
-              style={{
-                position: 'absolute',
-                left: phase.x,
-                top: PHASE_BOX_Y,
-                width: PHASE_BOX_W,
-                height: PHASE_BOX_H,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                padding: '0 12px',
-                border: `3px solid ${borderColor}`,
-                borderRadius: 12,
-                opacity,
-                transform: `scale(${scale})`,
-                backgroundColor: colors.background,
-              }}
-            >
-              <span
-                style={{
-                  color: isDiscovery
-                    ? lerp3(colors.foreground, colors.foreground, colors.accent, discoveryCommitted)
-                    : colors.foreground,
-                  fontFamily: fonts.family,
-                  fontSize: 28,
-                  fontWeight: 600,
-                }}
-              >
-                {phase.label}
-              </span>
-            </div>
+            <PhaseDetailScene
+              key={p.id}
+              frame={frame}
+              phaseId={p.id}
+              phaseIndex={seriesPhases.findIndex((sp) => sp.id === p.id)}
+              label={p.label}
+              windowStart={start}
+              markAt={markAt}
+            />
           );
         })}
 
-        {/* The map: nodes animate OUT from the discovery box's exact
-            position to their spread layout, so this reads as the box
-            becoming the map, not two separately-positioned things
-            cross-fading. */}
-        <svg
-          width={WORLD_WIDTH}
-          height={WORLD_HEIGHT}
-          style={{position: 'absolute', top: 0, left: 0, opacity: mapLineOpacity}}
-        >
-          <line
-            x1={mapNodeX(0)}
-            y1={mapNodeY}
-            x2={mapNodeX(mapNodes.length - 1)}
-            y2={mapNodeY}
-            stroke={colors.dim}
-            strokeWidth={2}
-            strokeDasharray={1400}
-            strokeDashoffset={interpolate(expandT, [0.3, 1], [1400, 0], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            })}
-          />
-        </svg>
-        {mapNodes.map((node, i) => {
-          const nodeT = interpolate(expandT, [0, 1], [0, 1], {easing: Easing.out(Easing.cubic)});
-          const nodeX = interpolate(nodeT, [0, 1], [discoveryCenterX, mapNodeX(i)]);
-          const nodeY = interpolate(nodeT, [0, 1], [discoveryCenterY, mapNodeY]);
-          const nodeScale = interpolate(expandT, [0, 0.3, 1], [0.15, 0.4, 1]);
-          const nodeOpacity = interpolate(expandT, [0, 0.25], [0, 1], {extrapolateRight: 'clamp'});
+      {frame >= T.partOne && frame < T.mapReveal && <ZoomScene frame={frame} width={width} />}
+      {frame >= T.mapReveal && <MapScene frame={frame} />}
+    </AbsoluteFill>
+  );
+};
 
+const Ruler: React.FC<{frame: number}> = ({frame}) => {
+  const pulse = 0.65 + 0.35 * Math.abs(Math.sin(frame / 21));
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '20px 32px',
+        fontFamily: fonts.mono,
+        fontSize: 13,
+        letterSpacing: '0.08em',
+        color: colors.dim,
+        borderBottom: `1px solid rgba(255,255,255,0.1)`,
+      }}
+    >
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: '50%',
+          background: colors.mark,
+          display: 'inline-block',
+          marginRight: 8,
+          opacity: pulse,
+        }}
+      />
+      FDE INTERVIEW SERIES — PART 01
+    </div>
+  );
+};
+
+const fadeInOut = (frame: number, start: number, end: number, inDur = sec(0.6), outDur = sec(0.8)) =>
+  interpolate(frame, [start, start + inDur, end - outDur, end], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+const TitleScene: React.FC<{frame: number}> = ({frame}) => {
+  const opacity = fadeInOut(frame, 0, T.framework);
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', opacity}}>
+      <svg viewBox="0 0 64 64" fill="none" style={{width: 64, height: 64, marginBottom: 22}}>
+        <rect x="4" y="4" width="56" height="56" rx="4" stroke={colors.accent} strokeWidth="3" />
+        <path d="M18 32h28M32 18v28" stroke={colors.accent} strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <Label>Google Forward Deployed Engineer</Label>
+      <Kinetic size="huge">
+        INTERVIEW
+        <br />
+        EXPERIENCE
+      </Kinetic>
+      <div style={{fontFamily: fonts.body, fontWeight: 500, fontSize: 22, color: colors.dim, marginTop: 16}}>
+        A four-part breakdown
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const HindsightScene: React.FC<{frame: number}> = ({frame}) => {
+  const opacity = fadeInOut(frame, T.framework, T.phasesOverview);
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', opacity}}>
+      <Label>In Hindsight</Label>
+      <Kinetic size="big">
+        <Mark frame={frame} startFrame={T.framework + sec(0.68)}>
+          AN EASY-TO-REMEMBER
+          <br />
+          MENTAL MODEL
+        </Mark>
+      </Kinetic>
+    </AbsoluteFill>
+  );
+};
+
+const PhasesOverviewScene: React.FC<{frame: number}> = ({frame}) => {
+  const opacity = fadeInOut(frame, T.phasesOverview, T.discovery);
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', opacity}}>
+      <Label>The End-to-End Cycle</Label>
+      <Kinetic size="big">FOUR PHASES</Kinetic>
+      <div style={{display: 'flex', gap: 28, marginTop: 8}}>
+        {seriesPhases.map((p, i) => {
+          const delay = T.phasesOverview + i * sec(0.35);
+          const t = interpolate(frame, [delay, delay + sec(0.4)], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: Easing.out(Easing.cubic),
+          });
           return (
             <div
-              key={node.id}
+              key={p.id}
               style={{
-                position: 'absolute',
-                left: nodeX - MAP_NODE_W / 2,
-                top: nodeY - MAP_NODE_H / 2,
-                width: MAP_NODE_W,
-                height: MAP_NODE_H,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                padding: '0 8px',
+                fontFamily: fonts.body,
+                fontWeight: 600,
+                fontSize: 22,
+                padding: '18px 26px',
                 border: `2px solid ${colors.dim}`,
-                borderRadius: 10,
-                backgroundColor: colors.background,
-                opacity: nodeOpacity,
-                transform: `scale(${nodeScale})`,
+                borderRadius: 4,
+                color: colors.foreground,
+                opacity: t,
+                transform: `translateY(${(1 - t) * 14}px)`,
               }}
             >
-              <span
-                style={{
-                  color: colors.dim,
-                  fontFamily: fonts.family,
-                  fontSize: 18,
-                  fontWeight: 500,
-                }}
-              >
-                {node.label}
-              </span>
+              {p.label}
             </div>
           );
         })}
@@ -352,14 +259,186 @@ export const Chunk1: React.FC = () => {
   );
 };
 
-// Three-stop color lerp (dim -> foreground -> accent), used for the
-// highlight-then-settle pulse each phase box gets.
-function lerp2(a: string, b: string, t: number) {
-  const pa = a.match(/\w\w/g)!.map((h) => parseInt(h, 16));
-  const pb = b.match(/\w\w/g)!.map((h) => parseInt(h, 16));
-  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
-  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-}
-function lerp3(a: string, b: string, c: string, t: number) {
-  return t <= 0.5 ? lerp2(a, b, t * 2) : lerp2(b, c, (t - 0.5) * 2);
-}
+const PhaseDetailScene: React.FC<{
+  frame: number;
+  phaseId: string;
+  phaseIndex: number;
+  label: string;
+  windowStart: number;
+  markAt: number;
+}> = ({frame, phaseId, phaseIndex, label, windowStart, markAt}) => {
+  const opacity = interpolate(frame, [windowStart, windowStart + sec(0.4)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const callout = phaseCallouts[phaseId];
+  const showSecond = callout.second && frame >= callout.second.at;
+  const markStart = showSecond ? callout.second!.at : markAt;
+
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', opacity}}>
+      <div style={{width: 72, height: 72, marginBottom: 20}}>{phaseIcons[phaseId]}</div>
+      <Label>{`Phase ${String(phaseIndex + 1).padStart(2, '0')}`}</Label>
+      <Kinetic size="big">{label.toUpperCase()}</Kinetic>
+      <div
+        style={{
+          marginTop: 22,
+          fontFamily: fonts.body,
+          fontWeight: 600,
+          fontSize: 30,
+          color: colors.foreground,
+          textAlign: 'center',
+        }}
+      >
+        <Mark frame={frame} startFrame={markStart}>
+          {showSecond ? callout.second!.text : callout.text}
+        </Mark>
+      </div>
+      <PhaseProgress activeIndex={phaseIndex} />
+    </AbsoluteFill>
+  );
+};
+
+const PhaseProgress: React.FC<{activeIndex: number}> = ({activeIndex}) => (
+  <div style={{position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 10}}>
+    {seriesPhases.map((p, i) => (
+      <span
+        key={p.id}
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: i < activeIndex ? colors.foreground : i === activeIndex ? colors.accent : colors.dim,
+          transform: i === activeIndex ? 'scale(1.3)' : 'scale(1)',
+        }}
+      />
+    ))}
+  </div>
+);
+
+const ZoomScene: React.FC<{frame: number; width: number}> = ({frame}) => {
+  const scale = interpolate(frame, [T.zoomPunch, T.zoomPunch + sec(1.4)], [1, 1.25], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
+      <div
+        style={{
+          fontFamily: fonts.display,
+          fontSize: 140,
+          color: colors.accent,
+          transform: `scale(${scale})`,
+        }}
+      >
+        DISCOVERY
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const MapScene: React.FC<{frame: number}> = ({frame}) => {
+  const opacity = interpolate(frame, [T.mapReveal, T.mapReveal + sec(0.3)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', opacity}}>
+      <Label>This Video Covers Discovery</Label>
+      <div style={{display: 'flex', gap: 18, marginTop: 12}}>
+        {mapNodes.map((n, i) => {
+          const delay = T.mapReveal + i * sec(0.15);
+          const t = interpolate(frame, [delay, delay + sec(0.35)], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: Easing.out(Easing.cubic),
+          });
+          return (
+            <div
+              key={n.id}
+              style={{
+                fontFamily: fonts.body,
+                fontWeight: 500,
+                fontSize: 15,
+                textAlign: 'center',
+                lineHeight: 1.3,
+                padding: '16px 14px',
+                border: `2px solid ${colors.dim}`,
+                borderRadius: 6,
+                color: colors.dim,
+                width: 120,
+                opacity: t,
+                transform: `scale(${0.5 + t * 0.5})`,
+              }}
+            >
+              {n.label}
+            </div>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const Label: React.FC<{children: React.ReactNode}> = ({children}) => (
+  <div
+    style={{
+      fontFamily: fonts.mono,
+      fontSize: 15,
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase',
+      color: colors.accent,
+      marginBottom: 18,
+    }}
+  >
+    {children}
+  </div>
+);
+
+const Kinetic: React.FC<{size: 'huge' | 'big'; children: React.ReactNode}> = ({size, children}) => (
+  <div
+    style={{
+      fontFamily: fonts.display,
+      textAlign: 'center',
+      lineHeight: 0.98,
+      letterSpacing: '-0.01em',
+      color: colors.foreground,
+      fontSize: size === 'huge' ? 120 : 72,
+    }}
+  >
+    {children}
+  </div>
+);
+
+const Mark: React.FC<{frame: number; startFrame: number; children: React.ReactNode}> = ({
+  frame,
+  startFrame,
+  children,
+}) => {
+  const t = interpolate(frame, [startFrame, startFrame + sec(0.5)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+  return (
+    <span style={{position: 'relative', display: 'inline-block'}}>
+      {children}
+      <svg
+        viewBox="0 0 400 20"
+        preserveAspectRatio="none"
+        style={{position: 'absolute', left: '-2%', right: '-2%', bottom: '-0.12em', width: '104%', height: '0.22em', overflow: 'visible'}}
+      >
+        <path
+          d="M5 12 Q 200 2 395 12"
+          fill="none"
+          stroke={colors.mark}
+          strokeWidth={10}
+          strokeLinecap="round"
+          strokeDasharray={600}
+          strokeDashoffset={600 - t * 600}
+        />
+      </svg>
+    </span>
+  );
+};
